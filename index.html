@@ -178,6 +178,12 @@ main{padding-bottom:110px;padding-top:18px}
   animation:sp .7s linear infinite;display:inline-block}
 @keyframes sp{to{transform:rotate(360deg)}}
 .loading{display:flex;flex-direction:column;align-items:center;gap:14px;padding:56px 20px;color:var(--ink-soft);text-align:center}
+.fix{padding:11px 0;border-bottom:1px solid var(--line);font-size:14.5px}
+.fix:last-child{border-bottom:0}
+.fix s{color:var(--warn);text-decoration-thickness:1.5px}
+.fix b{color:var(--ok)}
+.fix .seta{color:var(--ink-faint);padding:0 4px}
+.fix small{display:block;color:var(--ink-soft);font-size:13px;margin-top:3px}
 .howto{background:var(--brass-soft);border-radius:16px;padding:14px 18px;margin:0 0 20px}
 .howto b{display:block;font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--brass);margin-bottom:6px}
 .howto ol{margin:0;padding-left:20px;font-size:14.5px;line-height:1.7}
@@ -337,12 +343,15 @@ main{padding-bottom:110px;padding-top:18px}
         <div class="spread"><div><b>Tema escuro</b><div class="muted" style="font-size:13px">Melhor para estudar à noite</div></div>
           <button class="chip" id="cf-theme">Alternar</button></div>
         <div class="divider"></div>
-        <div><b>Velocidade da fala</b><div class="muted" style="font-size:13px;margin-bottom:8px">Áudio das frases e leituras</div>
-          <input type="range" id="cf-rate" min="0.8" max="1.25" step="0.05" style="width:100%"></div>
+        <div><div class="spread"><b>Velocidade da fala</b><span class="chip mono" id="cf-ratetxt">0,90×</span></div>
+          <div class="muted" style="font-size:13px;margin:2px 0 8px">Vale para todos os botões ▶. O botão <b>Devagar</b> toca 0,30 abaixo disso.</div>
+          <input type="range" id="cf-rate" min="0.5" max="1.1" step="0.05" style="width:100%"></div>
         <div class="divider"></div>
         <div><b>Sotaque</b><div class="muted" style="font-size:13px;margin-bottom:8px">Voz usada em todos os áudios. As marcadas com ★ são as de melhor qualidade instaladas neste aparelho.</div>
           <select id="cf-voice" style="width:100%;padding:11px 13px;border-radius:12px;border:1.5px solid var(--line);background:var(--surface-2)"></select>
-          <div class="row" style="margin-top:10px">
+          <div class="row" style="margin-top:10px;flex-wrap:wrap;gap:8px">
+            <button class="chip" id="cf-fem">♀ Feminina</button>
+            <button class="chip" id="cf-masc">♂ Masculina</button>
             <button class="btn soft sm" id="cf-test">▶ Testar esta voz</button>
             <span class="muted mono" style="font-size:11.5px;flex:1" id="cf-vozatual">—</span>
           </div>
@@ -386,7 +395,10 @@ main{padding-bottom:110px;padding-top:18px}
   <div class="shead">
     <div class="spread" style="margin-bottom:10px">
       <button class="chip" id="ss-close">✕ Sair</button>
-      <div class="chip brass mono" id="ss-clock">00:00</div>
+      <div class="row" style="gap:8px">
+        <button class="chip" id="ss-speed">Velocidade 0,90×</button>
+        <div class="chip brass mono" id="ss-clock">00:00</div>
+      </div>
     </div>
     <div class="rail" id="ss-rail"></div>
     <div class="spread" style="margin-top:8px">
@@ -448,7 +460,7 @@ const NIVEL_TXT = {
    3. ESTADO
    ═══════════════════════════════════════════════════ */
 let sb=null, user=null, perfil=null, vocab=[], licoes=[], chat=[];
-let PREF = JSON.parse(localStorage.getItem('lg-pref')||'{"rate":1,"voice":"","theme":"light"}');
+let PREF = JSON.parse(localStorage.getItem('lg-pref')||'{"rate":0.9,"voice":"","theme":"light"}');
 const savePref = ()=>localStorage.setItem('lg-pref',JSON.stringify(PREF));
 
 /* ═══════════════════════════════════════════════════
@@ -488,6 +500,22 @@ function pontuarVoz(v){
   if(v.localService) p+=6;
   return p;
 }
+const M_VOZ=/\b(alex|daniel|fred|tom|aaron|rishi|oliver|ryan|guy|reed|rocko|eddy|arthur|gordon|lee|james|nathan|christopher|eric|brandon|junior|ralph|male|masculin|homem|jorge|diego|carlos|liam|noah|william|davis|jason|roger|steffan|andrew|brian)\b/i;
+const F_VOZ=/\b(samantha|ava|zoe|allison|susan|karen|moira|tessa|fiona|kathy|nicky|serena|martha|catherine|aria|jenny|michelle|sonia|zira|flo|grandma|sandy|shelley|tara|veena|kate|female|feminin|mulher|joanna|emma|amy|olivia|sophia|ana|maria|natasha|clara|libby|jane|aor|luna|nova)\b/i;
+function generoVoz(v){
+  const n=(v.name||'');
+  if(/google (us|uk|india|australian|canadian|nigerian) english$/i.test(n.trim())) return 'f'; // as "Google English" sem sufixo são femininas
+  if(M_VOZ.test(n)) return 'm';
+  if(F_VOZ.test(n)) return 'f';
+  return '?';
+}
+function trocarGenero(g){
+  const cand=vozes.filter(v=>generoVoz(v)===g).sort((a,b)=>pontuarVoz(b)-pontuarVoz(a));
+  if(!cand.length) return toast('Nenhuma voz '+(g==='m'?'masculina':'feminina')+' em inglês foi encontrada neste navegador.',4200);
+  PREF.voice=cand[0].name; savePref(); carregarVozes();
+  toast('Voz alterada para '+cand[0].name);
+  falar('Good evening. This is the voice that will read your lessons from now on.');
+}
 function melhorVoz(){
   if(PREF.voice){ const v=vozes.find(x=>x.name===PREF.voice); if(v) return v; }
   return vozes.slice().sort((a,b)=>pontuarVoz(b)-pontuarVoz(a))[0]||null;
@@ -498,7 +526,8 @@ function carregarVozes(){
   const sel=$('#cf-voice');
   if(sel){
     const ord=vozes.slice().sort((a,b)=>pontuarVoz(b)-pontuarVoz(a));
-    sel.innerHTML = ord.map(v=>`<option value="${esc(v.name)}">${esc(v.name.replace(/Microsoft |Google /,''))} · ${esc(v.lang)}${pontuarVoz(v)>=60?' ★':''}</option>`).join('')
+    const marca={m:'♂ ',f:'♀ ','?':''};
+    sel.innerHTML = ord.map(v=>`<option value="${esc(v.name)}">${marca[generoVoz(v)]}${esc(v.name.replace(/Microsoft |Google /,''))} · ${esc(v.lang)}${pontuarVoz(v)>=60?' ★':''}</option>`).join('')
       || '<option value="">nenhuma voz em inglês instalada</option>';
     const atual=melhorVoz(); if(atual) sel.value=atual.name;
   }
@@ -527,7 +556,7 @@ function falar(texto,rate){
     const frase=t.trim(); if(!frase) return;
     const u=new SpeechSynthesisUtterance(frase);
     u.voice=v; u.lang=v.lang||'en-US';
-    u.rate=Math.min(1.3,Math.max(0.75,rate||PREF.rate||1)); u.pitch=1; u.volume=1;
+    u.rate=Math.min(1.4,Math.max(0.4,rate||PREF.rate||0.9)); u.pitch=1; u.volume=1;
     speechSynthesis.speak(u);
   });
   clearInterval(vigia);
@@ -826,8 +855,9 @@ REGRAS DE PRODUÇÃO:
 - Traduções em português do Brasil, naturais, não literais.
 - Fonética em IPA entre barras.
 - Campo "img": um substantivo concreto e fotografável em inglês para buscar foto no Wikimedia Commons (ex.: "wooden bridge", "morning coffee"). Para palavras abstratas, escolha um objeto ou cena que a represente bem.
-- Responda SOMENTE com JSON válido. Sem markdown, sem comentários, sem texto antes ou depois.`;
+- Traduções em português do Brasil, naturais, não literais.`;
 }
+const REGRA_JSON = `\n\nFORMATO DA RESPOSTA: responda SOMENTE com JSON válido. Sem markdown, sem crases, sem comentários, sem texto antes ou depois.`;
 
 function esquemaAula(){
   return `{
@@ -858,7 +888,7 @@ Produza exatamente 8 itens de vocabulário, 3 perguntas de leitura, 3 de audiç�
 
 Responda SOMENTE com este JSON:
 ${esquemaAula()}`;
-  return await iaJSON(prompt,{system:sistemaProfessor(),model:CFG.MODEL_SMART,max:4000});
+  return await iaJSON(prompt,{system:sistemaProfessor()+REGRA_JSON,model:CFG.MODEL_SMART,max:4000});
 }
 
 async function aulaDoDia(){
@@ -906,6 +936,7 @@ async function abrirSessao(){
     return;
   }
   S={licao,c:licao.conteudo,b:0,t0:Date.now(),resp:{},notas:{},timer:setInterval(atualizarRail,1000)};
+  mostrarVel();
   $('#ss-next').onclick=()=>{ if(S.b>=BLOCOS.length-1) concluirAula(); else {S.b++;renderBloco()} };
   renderBloco();
 }
@@ -924,11 +955,51 @@ function renderBloco(){
     audicao:blocoAudicao,fala:blocoFala,escrita:blocoEscrita}[b.id])();
   atualizarRail();
 }
+/* devolve a correção como cartão, não como JSON cru */
+function cartaoFala(r){
+  return `<div class="card" style="border-left:3px solid var(--brass);padding:16px">
+    <p style="margin:0 0 12px;font-size:14.5px">${esc(r.avaliacao||'')}</p>
+    ${r.reescrita?`<div class="ex"><div class="spread"><div style="flex:1">
+      <div class="eyebrow" style="margin-bottom:4px">Em inglês natural</div>
+      <b>${esc(r.reescrita)}</b></div>${playBtn(r.reescrita)}</div></div>`:''}
+    ${r.ponto?`<p class="muted" style="margin:12px 0 0;font-size:13.5px"><b style="color:var(--brass)">Para melhorar:</b> ${esc(r.ponto)}</p>`:''}
+  </div>`;
+}
+function cartaoCorrecao(r){
+  const mud=(r.mudancas||[]).map(m=>`<div class="fix">
+    <div><s>${esc(m.errado)}</s> <span class="seta">→</span> <b>${esc(m.certo)}</b></div>
+    <small>${esc(m.porque||'')}</small></div>`).join('');
+  return `<div class="card" style="border-left:3px solid var(--ok);padding:18px">
+    <p style="margin:0 0 14px;font-size:15px">${esc(r.avaliacao||'')}</p>
+    ${r.versao?`<div class="ex"><div class="spread" style="align-items:flex-start"><div style="flex:1">
+      <div class="eyebrow" style="margin-bottom:6px">Versão corrigida</div>
+      <b style="font-weight:600;line-height:1.6">${esc(r.versao)}</b></div>${playBtn(r.versao)}</div></div>`:''}
+    ${mud?`<div class="eyebrow" style="margin:18px 0 8px">O que mudou</div>${mud}`:''}
+    ${r.proximo_passo?`<div class="howto" style="margin:18px 0 0"><b>Próximo passo</b>
+      <p style="margin:0;font-size:14.5px">${esc(r.proximo_passo)}</p></div>`:''}
+  </div>`;
+}
 const comoFazer=(...passos)=>`<div class="howto"><b>O que fazer aqui</b><ol>${passos.map(x=>`<li>${x}</li>`).join('')}</ol></div>`;
 const playBtn=(txt,rate)=>`<button class="play" data-say="${esc(txt)}" ${rate?`data-rate="${rate}"`:''} aria-label="Ouvir">
   <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>`;
 function ligarPlays(escopo){
-  $$('[data-say]',escopo).forEach(b=>b.onclick=()=>falar(b.dataset.say,b.dataset.rate?Number(b.dataset.rate):null));
+  $$('[data-say]',escopo).forEach(b=>b.onclick=()=>{
+    const r = b.dataset.slow ? Math.max(0.4,(PREF.rate||0.9)-0.3)
+            : b.dataset.rate ? Number(b.dataset.rate) : null;
+    falar(b.dataset.say,r);
+  });
+}
+const VELS=[0.5,0.6,0.7,0.8,0.9,1,1.1];
+function rotuloVel(){ return 'Velocidade '+(PREF.rate||0.9).toFixed(2).replace('.',',')+'×'; }
+function mostrarVel(){
+  const b=$('#ss-speed'); if(b) b.textContent=rotuloVel();
+  const l=$('#cf-ratetxt'); if(l) l.textContent=(PREF.rate||0.9).toFixed(2).replace('.',',')+'×';
+  const sl=$('#cf-rate'); if(sl) sl.value=PREF.rate;
+}
+function ciclarVel(){
+  let i=VELS.findIndex(v=>Math.abs(v-(PREF.rate||0.9))<0.03);
+  PREF.rate=VELS[(i+1)%VELS.length]; savePref(); mostrarVel();
+  toast('Áudio em '+(PREF.rate).toFixed(2).replace('.',',')+'× — vale para todos os botões ▶');
 }
 
 /* --- bloco 1: aquecimento --- */
@@ -1007,7 +1078,7 @@ function blocoLeitura(){
     return gl[p]? `<w data-t="${esc(gl[p])}">${esc(t)}</w>` : esc(t);
   }).join('');
   $('#ss-body').innerHTML=`
-    <div class="spread"><div class="eyebrow">Leitura</div>${playBtn(L.texto||'',0.95)}</div>
+    <div class="spread"><div class="eyebrow">Leitura</div>${playBtn(L.texto||'')}</div>
     <h2 style="font-size:23px;margin:10px 0 14px">${esc(L.titulo||'')}</h2>
     ${comoFazer('Leia o texto inteiro uma vez, sem parar em cada palavra.','Toque nas palavras sublinhadas para ver o sentido.','Leia de novo, agora com o áudio (botão ▶ acima).','Responda às três perguntas no fim.')}
     <div class="reader">${texto}</div>
@@ -1030,7 +1101,7 @@ function blocoAudicao(){
     <div class="card center">
       <div class="row" style="justify-content:center;gap:12px">
         <button class="btn" data-say="${esc(A.texto||'')}">▶ Ouvir</button>
-        <button class="btn ghost" data-say="${esc(A.texto||'')}" data-rate="0.8">🐢 Devagar</button>
+        <button class="btn ghost" data-say="${esc(A.texto||'')}" data-slow="1">🐢 Devagar</button>
       </div>
       <button class="chip" id="au-txt" style="margin-top:14px">Mostrar transcrição</button>
       <div class="muted" style="font-size:12px;margin-top:10px">Áudio ruim ou incompreensível? Troque a voz em <b>Ajustes › Sotaque</b>.</div>
@@ -1045,7 +1116,7 @@ function blocoAudicao(){
     <div class="stack" id="au-dit">
       ${(A.ditado||[]).map((f,i)=>`<div class="card">
         <div class="spread"><b class="muted" style="font-size:13px">Frase ${i+1}</b>
-          <div class="row" style="gap:6px">${playBtn(f)}<button class="chip" data-say="${esc(f)}" data-rate="0.8">devagar</button></div></div>
+          <div class="row" style="gap:6px">${playBtn(f)}<button class="chip" data-say="${esc(f)}" data-slow="1">devagar</button></div></div>
         <input class="dit" data-i="${i}" placeholder="escreva aqui…" style="width:100%;margin-top:10px;padding:12px 14px;border-radius:12px;border:1.5px solid var(--line);background:var(--surface-2)">
         <div class="muted" style="font-size:13.5px;margin-top:8px" id="dt${i}"></div>
       </div>`).join('')}
@@ -1108,9 +1179,9 @@ function blocoFala(){
       out.innerHTML='você disse: <i>'+esc(t)+'</i>';
       fb.innerHTML=loadingHTML('analisando…');
       try{
-        const r=await ia(`O aluno (nível ${S.licao.nivel}) respondeu falando à pergunta "${(S.c.fala.perguntas||[])[i]}".\nTranscrição do que ele disse: "${t}"\n\nEm português, em no máximo 4 linhas: (1) diga se a resposta ficou boa, (2) reescreva a frase dele em inglês natural e correto, (3) aponte um único ponto a melhorar. Seja breve e encorajador.`,
-          {system:sistemaProfessor(),model:CFG.MODEL_FAST,max:500});
-        fb.innerHTML=`<div class="ex" style="border-left-color:var(--brass)">${esc(r).replace(/\n/g,'<br>')}</div>`;
+        const r=await iaJSON(`O aluno (nível ${S.licao.nivel}) respondeu falando à pergunta "${(S.c.fala.perguntas||[])[i]}".\nTranscrição do que ele disse: "${t}"\n\nResponda com este JSON:\n{"avaliacao":"1 frase em português, honesta e encorajadora, sobre a resposta","reescrita":"a fala dele reescrita em inglês natural e correto","ponto":"1 único ponto a melhorar, em português, 1 frase"}`,
+          {system:sistemaProfessor()+REGRA_JSON,model:CFG.MODEL_FAST,max:600});
+        fb.innerHTML=cartaoFala(r); ligarPlays(fb);
       }catch(e){ fb.innerHTML='<p class="muted" style="font-size:13px">Não consegui analisar agora.</p>'; }
     },()=>{b.disabled=false;b.textContent='🎙 Responder'});
   });
@@ -1135,9 +1206,9 @@ function blocoEscrita(){
     const t=ta.value.trim(); if(t.length<20) return toast('Escreva um pouco mais antes de enviar.');
     $('#es-fb').innerHTML=loadingHTML('Corrigindo seu texto…');
     try{
-      const r=await ia(`Corrija o texto abaixo, escrito por um aluno de nível ${S.licao.nivel} para a tarefa: "${E.tarefa_en}".\n\nTEXTO:\n"""${t}"""\n\nResponda em português, nesta ordem e sem títulos longos:\n1. UMA frase de avaliação geral, honesta e encorajadora.\n2. "Versão corrigida:" seguida do texto reescrito em inglês natural, mantendo as ideias do aluno.\n3. "O que mudou:" até 4 correções, cada uma no formato — errado → certo — e uma explicação curta em português.\n4. "Próximo passo:" um único ponto para ele treinar.`,
-        {system:sistemaProfessor(),model:CFG.MODEL_SMART,max:1600});
-      $('#es-fb').innerHTML=`<div class="card" style="border-left:3px solid var(--ok)">${esc(r).replace(/\n/g,'<br>')}</div>`;
+      const r=await iaJSON(`Corrija o texto abaixo, escrito por um aluno de nível ${S.licao.nivel} para a tarefa: "${E.tarefa_en}".\n\nTEXTO:\n"""${t}"""\n\nResponda com este JSON:\n{"avaliacao":"1 frase de avaliação geral em português, honesta e encorajadora","versao":"o texto reescrito em inglês natural, mantendo as ideias do aluno","mudancas":[{"errado":"trecho como o aluno escreveu","certo":"como deveria ser","porque":"explicação curta em português"}],"proximo_passo":"1 ponto para ele treinar, em português"}\n\nNo máximo 5 itens em "mudancas", os mais importantes.`,
+        {system:sistemaProfessor()+REGRA_JSON,model:CFG.MODEL_SMART,max:2000});
+      $('#es-fb').innerHTML=cartaoCorrecao(r); ligarPlays($('#es-fb'));
       S.notas.escrita=1;
     }catch(e){ $('#es-fb').innerHTML=`<p class="muted">Não consegui corrigir agora: ${esc(e.message)}</p>`; }
   };
@@ -1307,7 +1378,7 @@ function abrirPratica(k){
       try{
         const r=await iaJSON(`Gere 5 frases em inglês de nível ${perfil.nivel}, entre 6 e 12 palavras, sobre assuntos variados do cotidiano adulto. Responda SOMENTE: {"frases":["","","","",""]}`,{model:CFG.MODEL_FAST,max:600});
         $('#dt-box').innerHTML=r.frases.map((f,i)=>`<div class="card" style="margin-bottom:10px">
-          <div class="spread"><b class="muted" style="font-size:13px">Frase ${i+1}</b><div class="row" style="gap:6px">${playBtn(f)}<button class="chip" data-say="${esc(f)}" data-rate="0.8">devagar</button></div></div>
+          <div class="spread"><b class="muted" style="font-size:13px">Frase ${i+1}</b><div class="row" style="gap:6px">${playBtn(f)}<button class="chip" data-say="${esc(f)}" data-slow="1">devagar</button></div></div>
           <input class="pdit" data-f="${esc(f)}" placeholder="escreva…" style="width:100%;margin-top:10px;padding:12px 14px;border-radius:12px;border:1.5px solid var(--line);background:var(--surface-2)">
           <div class="muted" style="font-size:13.5px;margin-top:8px"></div></div>`).join('')
           +'<button class="btn soft block" id="pdt-ck">Conferir</button>';
@@ -1324,9 +1395,9 @@ function abrirPratica(k){
       const t=$('#tx-in').value.trim(); if(t.length<15) return toast('Escreva um pouco mais.');
       $('#tx-out').innerHTML=loadingHTML('corrigindo…');
       try{
-        const r=await ia(`Corrija este texto de um aluno de nível ${perfil.nivel}:\n"""${t}"""\n\nEm português: 1) uma frase de avaliação; 2) "Versão corrigida:" com o texto em inglês natural; 3) "O que mudou:" até 5 correções no formato errado → certo com explicação curta.`,
-          {system:sistemaProfessor(),model:CFG.MODEL_SMART,max:1600});
-        $('#tx-out').innerHTML=`<div class="card" style="border-left:3px solid var(--ok)">${esc(r).replace(/\n/g,'<br>')}</div>`;
+        const r=await iaJSON(`Corrija este texto de um aluno de nível ${perfil.nivel}:\n"""${t}"""\n\nResponda com este JSON:\n{"avaliacao":"1 frase em português","versao":"o texto em inglês natural e correto","mudancas":[{"errado":"","certo":"","porque":""}],"proximo_passo":"1 ponto para treinar"}\n\nNo máximo 6 itens em "mudancas".`,
+          {system:sistemaProfessor()+REGRA_JSON,model:CFG.MODEL_SMART,max:2000});
+        $('#tx-out').innerHTML=cartaoCorrecao(r); ligarPlays($('#tx-out'));
       }catch(e){ $('#tx-out').innerHTML='<p class="muted">Falhou: '+esc(e.message)+'</p>'; }
     };
   }
@@ -1378,7 +1449,7 @@ function abrirApp(){
   $('#cf-rate').value=PREF.rate;
   $('#cv-temas').innerHTML=TEMAS.map(t=>`<button class="chip" data-tema="${esc(t)}">${esc(t)}</button>`).join('');
   $$('[data-tema]').forEach(b=>b.onclick=()=>enviarChat("Let's talk about: "+b.dataset.tema));
-  carregarVozes(); diagnostico(); render(); aba('hoje');
+  carregarVozes(); diagnostico(); mostrarVel(); render(); aba('hoje');
 }
 
 function ligarEventos(){
@@ -1397,7 +1468,11 @@ function ligarEventos(){
     ouvir(t=>$('#cv-in').value=t,t=>{b.textContent='🎙 Falar'; if(t) enviarChat(t)},()=>b.textContent='🎙 Falar'); };
   $('#cf-theme').onclick=()=>{ PREF.theme=PREF.theme==='dark'?'light':'dark'; savePref();
     document.documentElement.dataset.theme=PREF.theme; };
-  $('#cf-rate').oninput=e=>{PREF.rate=Number(e.target.value);savePref()};
+  $('#cf-rate').oninput=e=>{PREF.rate=Number(e.target.value);savePref();mostrarVel()};
+  $('#cf-rate').onchange=()=>falar('This is the reading speed you chose.');
+  $('#cf-fem').onclick=()=>trocarGenero('f');
+  $('#cf-masc').onclick=()=>trocarGenero('m');
+  $('#ss-speed').onclick=ciclarVel;
   $('#cf-voice').onchange=e=>{PREF.voice=e.target.value;savePref();carregarVozes();
     falar('Good evening. This is the voice that will read your lessons from now on.')};
   $('#cf-test').onclick=()=>falar('Good evening. This is the voice that will read your lessons from now on.');
