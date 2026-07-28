@@ -124,6 +124,9 @@ main{padding-bottom:110px;padding-top:18px}
 .ph{background:var(--surface-3);display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;position:relative}
 .ph img{width:100%;height:100%;object-fit:cover;display:block;position:absolute;inset:0}
 .semfoto-msg{font-size:11px;color:var(--ink-faint);margin-top:6px;padding:0 14px;text-align:center;line-height:1.4}
+.troca-foto{position:absolute;right:8px;bottom:8px;z-index:2;background:rgba(10,30,36,.72);color:#fff;
+  font-size:11px;font-weight:700;padding:5px 10px;border-radius:999px;backdrop-filter:blur(4px)}
+.troca-foto:active{transform:scale(.94)}
 .vcard .ph{aspect-ratio:16/10}
 .ph .fallback{font-family:'Fraunces',serif;font-size:44px;color:var(--ink-faint)}
 .credito{font-size:11px;color:var(--ink-faint);text-align:center;margin:14px 0 0}
@@ -789,80 +792,95 @@ function notaFala(alvo,dito){
 /* ═══════════════════════════════════════════════════
    6. IMAGENS — Wikimedia Commons
    ═══════════════════════════════════════════════════ */
-const FOTO_RUIM=/(\bmap\b|karte|mapa|diagram|chart|logo|flag|bandera|coat.of.arms|escudo|seal|icon|graph|plot|schematic|blueprint|signature|stamp|banknote|barcode|screenshot|poster|cover|title.page|manuscript|inscription)/i;
-let DIAG_FOTO=[];   // registro da última busca, mostrado em Ajustes
+const FOTO_RUIM=/(\bmap\b|karte|mapa|diagram|chart|logo|flag|bandera|coat.of.arms|escudo|seal|icon|graph|plot|schematic|blueprint|signature|stamp|banknote|barcode|c(ó|o)digo.de.barras|screenshot|poster|title.page|manuscript|inscription|postcard|postal|engraving|lithograph|grabado|1[6789]\d{2}|19[0-4]\d|ruler|caliper|micrometer|specimen|holotype|scale.bar)/i;
+let DIAG_FOTO=[];
 
-/* ── fonte 1: busca no acervo Wikimedia Commons ─────────────── */
-async function fonteCommons(termo){
-  const url='https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrnamespace=6'
-    +'&gsrsearch='+encodeURIComponent(termo+' filetype:bitmap')
-    +'&gsrlimit=10&prop=imageinfo&iiprop=url%7Csize&iiurlwidth=640&format=json&origin=*';
-  const r=await fetch(url);
-  if(!r.ok) throw new Error('HTTP '+r.status);
-  const j=await r.json();
-  const pgs=(j&&j.query&&j.query.pages)||null;
-  if(!pgs) return {src:null,nota:'nenhum resultado'};
-  const todos=Object.values(pgs);
-  const bons=todos
-    .filter(p=>/\.(jpe?g|png)$/i.test(p.title||''))
-    .filter(p=>!FOTO_RUIM.test(p.title||''))
-    .filter(p=>p.imageinfo&&p.imageinfo[0]&&p.imageinfo[0].thumburl)
-    .sort((a,b)=>(a.index||99)-(b.index||99));
-  return {src: bons.length? bons[0].imageinfo[0].thumburl : null,
-          nota: todos.length+' achados, '+bons.length+' aproveitáveis'};
-}
-
-/* ── fonte 2: imagem principal do verbete na Wikipédia ──────── */
-async function fonteWikipedia(termo){
-  const limpo=termo.replace(/^(the|a|an|el|la|los|las|un|una|le|les|der|die|das|il|lo)\s+/i,'').trim();
-  const idiomas=[IDIOMA,'en','pt'].filter((v,i,a)=>a.indexOf(v)===i);
-  for(const lg of idiomas){
+/* ── Wikipédia: a imagem de abertura do verbete é curada por gente,
+      e por isso costuma ser muito melhor que uma busca em acervo ── */
+async function fonteWikipedia(termos){
+  for(const [lg,termo] of termos){
+    const limpo=String(termo||'').replace(/^(the|a|an|el|la|los|las|un|una|le|les|der|die|das|il|lo)\s+/i,'').trim();
+    if(!limpo) continue;
     const u='https://'+lg+'.wikipedia.org/api/rest_v1/page/summary/'+encodeURIComponent(limpo);
     const r=await fetch(u);
     if(!r.ok) continue;
     const j=await r.json();
+    if(j.type==='disambiguation') continue;
     const src=(j.originalimage&&j.originalimage.source)||(j.thumbnail&&j.thumbnail.source);
-    if(src) return {src:String(src).replace(/\/\d+px-/,'/640px-'), nota:'verbete em '+lg};
+    if(src && !FOTO_RUIM.test(src)) return {lista:[String(src).replace(/\/\d+px-/,'/640px-')], nota:'verbete em '+lg+': '+limpo};
   }
-  return {src:null,nota:'sem verbete com foto'};
+  return {lista:[],nota:'sem verbete com foto'};
 }
 
-/* ── fonte 3: Openverse, acervo de imagens livres ───────────── */
+/* ── Openverse: acervo de fotos livres, bom para cenas do cotidiano ── */
 async function fonteOpenverse(termo){
-  const u='https://api.openverse.org/v1/images/?q='+encodeURIComponent(termo)+'&page_size=5&mature=false';
+  const u='https://api.openverse.org/v1/images/?q='+encodeURIComponent(termo)+'&page_size=8&mature=false&aspect_ratio=wide';
   const r=await fetch(u);
   if(!r.ok) throw new Error('HTTP '+r.status);
   const j=await r.json();
-  const bons=(j.results||[]).filter(x=>x.url&&!FOTO_RUIM.test(x.title||''));
-  return {src: bons.length? (bons[0].thumbnail||bons[0].url) : null,
-          nota:(j.results||[]).length+' achados'};
+  const lista=(j.results||[])
+    .filter(x=>!FOTO_RUIM.test((x.title||'')+' '+(x.foreign_landing_url||'')))
+    .map(x=>x.thumbnail||x.url).filter(Boolean);
+  return {lista, nota:(j.results||[]).length+' achados, '+lista.length+' aproveitáveis'};
 }
 
-const FONTES=[['Wikimedia Commons',fonteCommons],['Wikipédia',fonteWikipedia],['Openverse',fonteOpenverse]];
+/* ── Wikimedia Commons: último recurso, exige que o título fale do tema ── */
+async function fonteCommons(termo){
+  const url='https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrnamespace=6'
+    +'&gsrsearch='+encodeURIComponent(termo+' filetype:bitmap')
+    +'&gsrlimit=20&prop=imageinfo&iiprop=url%7Csize&iiurlwidth=640&format=json&origin=*';
+  const r=await fetch(url);
+  if(!r.ok) throw new Error('HTTP '+r.status);
+  const j=await r.json();
+  const pgs=(j&&j.query&&j.query.pages)||null;
+  if(!pgs) return {lista:[],nota:'nenhum resultado'};
+  const palavras=termo.toLowerCase().split(/\s+/).filter(w=>w.length>=4);
+  const todos=Object.values(pgs);
+  const lista=todos
+    .filter(p=>/\.(jpe?g|png)$/i.test(p.title||''))
+    .filter(p=>!FOTO_RUIM.test(p.title||''))
+    .filter(p=>!palavras.length || palavras.some(w=>(p.title||'').toLowerCase().includes(w)))
+    .filter(p=>p.imageinfo&&p.imageinfo[0]&&p.imageinfo[0].thumburl)
+    .filter(p=>(p.imageinfo[0].width||0)>=500 && (p.imageinfo[0].width||0)>=(p.imageinfo[0].height||0)*0.8)
+    .sort((a,b)=>(a.index||99)-(b.index||99))
+    .map(p=>p.imageinfo[0].thumburl);
+  return {lista, nota:todos.length+' achados, '+lista.length+' aproveitáveis'};
+}
 
-async function buscarImagem(termo,registrar){
-  if(PREF.semFotos) return {src:null,motivo:'fotos desligadas'};
-  const chave='foto2:'+termo.toLowerCase();
+/* junta candidatos de várias fontes até ter variedade suficiente */
+async function buscarCandidatos(termos,registrar){
+  if(PREF.semFotos) return {lista:[],motivo:'fotos desligadas'};
+  const eng=termos.en||termos.alvo||'';
+  const chave='fotos:'+eng.toLowerCase();
   const guardado=localStorage.getItem(chave);
   if(guardado){
-    if(registrar) DIAG_FOTO.push(['memória','busca anterior guardada',guardado==='0'?'— nada':'✓ achou']);
-    return {src: guardado==='0'?null:guardado, motivo:'busca anterior sem resultado'};
+    const l=JSON.parse(guardado);
+    if(registrar) DIAG_FOTO.push(['memória',l.length+' guardadas',l.length?'✓':'— nada']);
+    return {lista:l, motivo:l.length?'':'busca anterior sem resultado'};
   }
-  let motivo='nenhum acervo respondeu';
-  for(const [nome,fn] of FONTES){
+  const wiki=[[IDIOMA,termos.alvo],['pt',termos.pt],['en',eng]].filter(x=>x[1]);
+  const passos=[
+    ['Wikipédia', ()=>fonteWikipedia(wiki)],
+    ['Openverse', ()=>fonteOpenverse(eng)],
+    ['Wikimedia Commons', ()=>fonteCommons(eng)]
+  ];
+  let lista=[], motivo='nenhum acervo devolveu foto';
+  for(const [nome,fn] of passos){
+    if(lista.length>=4) break;
     try{
-      const r=await fn(termo);
-      if(registrar) DIAG_FOTO.push([nome, r.nota, r.src?'✓ achou':'— nada']);
-      if(r.src){ try{localStorage.setItem(chave,r.src)}catch(e){} return {src:r.src,motivo:''}; }
-      motivo=nome+': '+r.nota;
+      const r=await fn();
+      if(registrar) DIAG_FOTO.push([nome,r.nota,r.lista.length?'✓ '+r.lista.length:'— nada']);
+      lista=lista.concat(r.lista);
+      if(!r.lista.length) motivo=nome+': '+r.nota;
     }catch(e){
       const rede=/Failed to fetch|NetworkError|Load failed|CORS/i.test(e.message||'');
-      motivo = nome+': '+(rede?'conexão bloqueada':(e.message||'erro'));
-      if(registrar) DIAG_FOTO.push([nome, rede?'bloqueado pelo navegador (CORS ou rede)':(e.message||'erro'), '✕ erro']);
+      motivo=nome+': '+(rede?'conexão bloqueada':(e.message||'erro'));
+      if(registrar) DIAG_FOTO.push([nome, rede?'bloqueado pelo navegador (CORS ou rede)':(e.message||'erro'),'✕ erro']);
     }
   }
-  try{ localStorage.setItem(chave,'0'); }catch(e){}
-  return {src:null,motivo};
+  lista=lista.filter((v,i,a)=>a.indexOf(v)===i).slice(0,8);
+  try{ localStorage.setItem(chave,JSON.stringify(lista)); }catch(e){}
+  return {lista, motivo};
 }
 
 function semFoto(el,motivo){
@@ -872,26 +890,39 @@ function semFoto(el,motivo){
   aviso.className='semfoto-msg'; aviso.textContent=motivo||'sem foto';
   el.innerHTML=''; if(letra) el.appendChild(letra); el.appendChild(aviso);
 }
+function pintarFoto(el){
+  const lista=JSON.parse(el.dataset.lista||'[]');
+  const k=Number(el.dataset.k||0)%Math.max(1,lista.length);
+  el.querySelectorAll('img,.troca-foto').forEach(x=>x.remove());
+  const im=document.createElement('img');
+  im.alt=''; im.referrerPolicy='no-referrer'; im.style.opacity='0'; im.style.transition='opacity .3s ease';
+  im.onload=()=>{ el.querySelectorAll('.fallback,.semfoto-msg').forEach(x=>x.remove()); im.style.opacity='1'; };
+  im.onerror=()=>{ im.remove();
+    if(lista.length>1){ el.dataset.k=k+1; el.dataset.lista=JSON.stringify(lista.filter((_,i)=>i!==k)); pintarFoto(el); }
+    else semFoto(el,'a imagem não abriu'); };
+  el.appendChild(im); im.src=lista[k];
+  if(lista.length>1){
+    const b=document.createElement('button');
+    b.className='troca-foto'; b.type='button';
+    b.title='Trocar a foto'; b.textContent='↻ '+(k+1)+'/'+lista.length;
+    b.onclick=ev=>{ ev.stopPropagation(); el.dataset.k=k+1; pintarFoto(el); };
+    el.appendChild(b);
+  }
+}
 async function montarImagens(escopo){
   const alvos=$$('[data-img]',escopo);
   let primeiro=true;
   await Promise.all(alvos.map(async el=>{
-    const termo=el.dataset.img; el.removeAttribute('data-img');
+    const termos={en:el.dataset.img, alvo:el.dataset.alvo||'', pt:el.dataset.pt||''};
+    el.removeAttribute('data-img');
     const registrar=primeiro; primeiro=false;
-    if(registrar) DIAG_FOTO=[['palavra buscada',termo,'']];
+    if(registrar) DIAG_FOTO=[['termo de busca',termos.en,'']];
     el.classList.add('carregando');
-    const {src,motivo}=await buscarImagem(termo,registrar);
+    const {lista,motivo}=await buscarCandidatos(termos,registrar);
     el.classList.remove('carregando');
-    if(!src) return semFoto(el,motivo);
-    // a imagem entra no documento imediatamente e aparece ao carregar:
-    // imagem solta na memória pode nunca ser buscada pelo navegador
-    const im=document.createElement('img');
-    im.alt=termo; im.referrerPolicy='no-referrer'; im.style.opacity='0';
-    im.style.transition='opacity .3s ease';
-    im.onload=()=>{ el.querySelectorAll('.fallback,.semfoto-msg').forEach(x=>x.remove()); im.style.opacity='1'; };
-    im.onerror=()=>{ im.remove(); semFoto(el,'a imagem não abriu (hotlink bloqueado)');
-      if(registrar) DIAG_FOTO.push(['carregamento','a imagem não abriu','✕ erro']); };
-    el.appendChild(im); im.src=src;
+    if(!lista.length) return semFoto(el,motivo);
+    el.dataset.lista=JSON.stringify(lista); el.dataset.k=0;
+    pintarFoto(el);
   }));
 }
 
@@ -1180,7 +1211,7 @@ REGRAS DE PRODUÇÃO:
 - Todo o ${L().adj} deve ser natural e idiomático, como um falante nativo realmente diria.
 - Traduções em português do Brasil, naturais, não literais.
 - Fonética em IPA entre barras.
-- Campo "img": um substantivo concreto e fotografável, SEMPRE EM INGLÊS (é o idioma de busca do acervo), para buscar foto no Wikimedia Commons (ex.: "wooden bridge", "morning coffee"). Para palavras abstratas, escolha um objeto ou cena que a represente bem.
+- Campo "img": uma CENA CONCRETA E FOTOGRAFÁVEL descrita EM INGLÊS, de 2 a 4 palavras, que ensine a palavra a quem apenas olhar a foto. Nunca use a palavra abstrata sozinha — descreva a cena onde ela aparece. Exemplos: para "preço" use "price tag supermarket shelf"; para "quilo" use "kitchen scale weighing tomatoes"; para "vendedor" use "market vendor fruit stall"; para "mercado" use "outdoor farmers market stalls"; para "saudade" use "empty chair by window"; para "decidir" use "person choosing two paths". Prefira cenas do cotidiano, coloridas e atuais, não objetos isolados nem ilustrações técnicas (ex.: "wooden bridge", "morning coffee"). Para palavras abstratas, escolha um objeto ou cena que a represente bem.
 - Traduções em português do Brasil, naturais, não literais.
 ${L().nota}`;
 }
@@ -1397,7 +1428,7 @@ function blocoVocabulario(){
     ${comoFazer('Toque no botão ▶ ao lado da palavra e escute.','Repita em voz alta duas vezes, imitando o ritmo.','Tente adivinhar o sentido pela frase de exemplo antes de tocar em <b>Ver tradução</b>.','Escute também a frase de exemplo completa.')}
     <div class="stack">
       ${vs.map((v,i)=>`<div class="vcard">
-        <div class="ph" data-img="${esc(v.img||v.termo)}"><span class="fallback">${esc((v.termo||'?')[0].toUpperCase())}</span></div>
+        <div class="ph" data-img="${esc(v.img||v.termo)}" data-alvo="${esc(v.termo)}" data-pt="${esc(v.pt||'')}"><span class="fallback">${esc((v.termo||'?')[0].toUpperCase())}</span></div>
         <div class="body">
           <div class="spread"><div><div class="word">${esc(v.termo)}</div><div class="ipa">${esc(v.fonetica||'')}</div></div>${playBtn(v.termo)}</div>
           <div class="gloss" id="gl${i}" style="display:none">${esc(v.pt)}</div>
@@ -1845,7 +1876,8 @@ function abrirPratica(k){
       ligarPlays($('#srs-box'));
       $('#srs-show').onclick=()=>{
         $('#srs-tr').classList.remove('hide'); $('#srs-btns').classList.remove('hide'); $('#srs-show').remove();
-        const f=$('#srs-foto'); if(f){ f.dataset.img=v.img||v.termo; montarImagens($('#srs-box')); }
+        const f=$('#srs-foto'); if(f){ f.dataset.img=v.img||v.termo; f.dataset.alvo=v.termo; f.dataset.pt=v.traducao||'';
+          montarImagens($('#srs-box')); }
       };
       $$('#srs-btns button').forEach(b=>b.onclick=async()=>{ await revisarVocab(v.id,b.dataset.ok==='1'); fila.shift(); passo(); });
     }; passo();
@@ -1962,9 +1994,10 @@ function ligarEventos(){
     cx.innerHTML=loadingHTML('Consultando os três acervos…');
     const antes=PREF.semFotos; PREF.semFotos=false;
     const palavra = IDIOMA==='es' ? 'mercado' : 'market';
-    ['foto2:'+palavra].forEach(k=>localStorage.removeItem(k));
-    DIAG_FOTO=[['palavra buscada',palavra,'']];
-    const {src}=await buscarImagem(palavra,true);
+    localStorage.removeItem('fotos:'+palavra);
+    DIAG_FOTO=[['termo de busca',palavra,'']];
+    const {lista}=await buscarCandidatos({en:palavra,alvo:palavra,pt:'mercado'},true);
+    const src=lista[0];
     PREF.semFotos=antes;
     cx.innerHTML=`
       <div class="card" style="padding:14px">
