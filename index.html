@@ -355,6 +355,10 @@ main{padding-bottom:110px;padding-top:18px}
           </details></div>
       </div>
       <div class="card" style="margin-top:14px">
+        <div class="eyebrow">Diagnóstico de áudio</div>
+        <div id="cf-diag" style="margin-top:10px"></div>
+      </div>
+      <div class="card" style="margin-top:14px">
         <div class="eyebrow">Nivelamento</div>
         <p class="muted" style="font-size:13.5px;margin:8px 0 12px">Refaça o teste se sentir que o nível não corresponde mais ao seu inglês.</p>
         <button class="btn ghost block" id="cf-retest">Refazer teste de nivelamento</button>
@@ -499,6 +503,7 @@ function carregarVozes(){
     const atual=melhorVoz(); if(atual) sel.value=atual.name;
   }
   const av=$('#cf-vozatual'); if(av) av.textContent = melhorVoz()? melhorVoz().name : 'nenhuma voz em inglês encontrada';
+  if(typeof diagnostico==='function') diagnostico();
 }
 /* alguns navegadores devolvem a lista vazia nos primeiros instantes */
 if('speechSynthesis' in window){
@@ -532,14 +537,57 @@ function falar(texto,rate){
   },9000);
 }
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+const ERRO_FALA={
+  'network':'Este navegador não oferece o serviço de reconhecimento de voz. Abra o app no Chrome ou no Safari.',
+  'service-not-allowed':'Este navegador bloqueia o serviço de reconhecimento de voz. Abra o app no Chrome ou no Safari.',
+  'not-allowed':'Permissão de microfone negada. Libere o microfone para este site nas configurações do navegador.',
+  'audio-capture':'Nenhum microfone disponível foi encontrado.',
+  'no-speech':'Não ouvi nada. Toque de novo e fale um pouco mais alto.',
+  'aborted':''
+};
+let falaQuebrada=false;
 function ouvir(onParcial,onFim,onErro){
-  if(!SR){ toast('Reconhecimento de voz indisponível. Use o Chrome ou o Safari.'); onErro&&onErro(); return null; }
+  if(!SR){ toast('Reconhecimento de voz indisponível neste navegador. Use o Chrome ou o Safari.'); onErro&&onErro('sem-suporte'); return null; }
   const r=new SR(); r.lang='en-US'; r.interimResults=true; r.continuous=false; r.maxAlternatives=1;
   let texto='';
   r.onresult=e=>{ texto=Array.from(e.results).map(x=>x[0].transcript).join(' '); onParcial&&onParcial(texto); };
-  r.onerror=e=>{ onErro&&onErro(e.error); };
+  r.onerror=e=>{
+    const m=ERRO_FALA[e.error]!==undefined? ERRO_FALA[e.error] : 'Falha no reconhecimento de voz: '+e.error;
+    if(/network|service-not-allowed/.test(e.error)){ falaQuebrada=true; diagnostico(); }
+    if(m) toast(m,5000);
+    onErro&&onErro(e.error);
+  };
   r.onend=()=>onFim&&onFim(texto.trim());
-  r.start(); return r;
+  try{ r.start(); }catch(e){ onErro&&onErro('start'); }
+  return r;
+}
+/* ── diagnóstico de áudio, mostrado em Ajustes ────────────────────── */
+let navegador='—';
+(async()=>{
+  const ua=navigator.userAgent;
+  if(navigator.brave && await navigator.brave.isBrave().catch(()=>false)) navegador='Brave';
+  else if(/Edg\//.test(ua)) navegador='Edge';
+  else if(/OPR\//.test(ua)) navegador='Opera';
+  else if(/Chrome\//.test(ua)) navegador='Chrome';
+  else if(/Safari/.test(ua)) navegador='Safari';
+  else if(/Firefox/.test(ua)) navegador='Firefox';
+  diagnostico();
+})();
+function diagnostico(){
+  const el=$('#cf-diag'); if(!el) return;
+  const v=melhorVoz();
+  const stt = !SR ? ['✕','não disponível neste navegador']
+            : falaQuebrada ? ['✕','o navegador recusou o serviço de reconhecimento']
+            : ['✓','disponível'];
+  const bravo = navegador==='Brave';
+  el.innerHTML=`
+    <div class="spread" style="font-size:13.5px;padding:5px 0"><span class="muted">Navegador</span><b>${esc(navegador)}</b></div>
+    <div class="spread" style="font-size:13.5px;padding:5px 0"><span class="muted">Vozes em inglês</span><b>${vozes.length}</b></div>
+    <div class="spread" style="font-size:13.5px;padding:5px 0"><span class="muted">Voz em uso</span><b>${v?esc(v.name):'nenhuma'}</b></div>
+    <div class="spread" style="font-size:13.5px;padding:5px 0"><span class="muted">Reconhecimento de voz</span><b style="color:${stt[0]==='✓'?'var(--ok)':'var(--warn)'}">${stt[0]} ${stt[1]}</b></div>
+    ${bravo?`<div class="howto" style="margin:14px 0 0"><b>Atenção</b><ol>
+      <li>O Brave não inclui as vozes do Google nem o serviço de reconhecimento de fala. Os blocos de <b>Fala</b> e o microfone da <b>Conversação</b> não funcionam aqui.</li>
+      <li>Para a aula completa, abra o app no <b>Chrome</b> ou no <b>Safari</b>.</li></ol></div>`:''}`;
 }
 /* similaridade entre o que foi dito e o alvo */
 function normaliza(s){return String(s||'').toLowerCase().replace(/[^a-z\s']/g,' ').replace(/\s+/g,' ').trim()}
@@ -1330,7 +1378,7 @@ function abrirApp(){
   $('#cf-rate').value=PREF.rate;
   $('#cv-temas').innerHTML=TEMAS.map(t=>`<button class="chip" data-tema="${esc(t)}">${esc(t)}</button>`).join('');
   $$('[data-tema]').forEach(b=>b.onclick=()=>enviarChat("Let's talk about: "+b.dataset.tema));
-  carregarVozes(); render(); aba('hoje');
+  carregarVozes(); diagnostico(); render(); aba('hoje');
 }
 
 function ligarEventos(){
