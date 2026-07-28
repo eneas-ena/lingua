@@ -179,6 +179,22 @@ main{padding-bottom:110px;padding-top:18px}
 @keyframes sobe{from{transform:translateY(30px)}to{transform:translateY(0)}}
 @media(min-width:640px){#idiomas{align-items:center}#idiomas .sheet{border-radius:26px;padding-bottom:26px}}
 
+/* ---------- pátio ---------- */
+#scr-hub{min-height:100dvh;background:linear-gradient(178deg,var(--bg) 0%,var(--surface-3) 130%)}
+.trilha{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);
+  padding:20px;box-shadow:var(--shadow);width:100%;text-align:left;display:block;transition:transform .12s ease}
+.trilha:active{transform:scale(.985)}
+.trilha.nova{background:transparent;box-shadow:none;border-style:dashed}
+.sigla{font-family:'Fraunces',serif;font-size:13px;font-weight:700;letter-spacing:.1em;
+  background:var(--accent);color:var(--accent-ink);padding:4px 9px;border-radius:7px}
+.trilha.nova .sigla{background:var(--surface-3);color:var(--ink-faint)}
+.mini{display:flex;gap:3px;margin:14px 0 12px}
+.mini div{flex:1;height:6px;border-radius:3px;background:var(--surface-3)}
+.mini div.past{background:var(--accent-soft)}
+.mini div.on{background:var(--accent)}
+.trilha .stat b{font-size:21px}
+.trilha .stat span{font-size:10px}
+
 /* ---------- diversos ---------- */
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom) + 92px);
   z-index:200;background:var(--ink);color:var(--bg);padding:12px 20px;border-radius:999px;
@@ -245,7 +261,7 @@ main{padding-bottom:110px;padding-top:18px}
 <section id="scr-app" class="hide">
   <header class="top"><div class="wrap spread">
     <div class="row">
-      <button id="hd-idioma" class="chip accent" style="font-weight:700">EN</button>
+      <button id="hd-idioma" class="chip accent" style="font-weight:700" title="Voltar ao início">‹ EN</button>
       <span class="lvl" id="hd-lvl">A1</span>
       <div><div style="font-weight:700;font-size:14.5px" id="hd-name">Bom dia</div>
       <div class="muted" style="font-size:12px" id="hd-day">Dia 1</div></div>
@@ -421,15 +437,35 @@ main{padding-bottom:110px;padding-top:18px}
   </nav>
 </section>
 
-<!-- ================= IDIOMAS ================= -->
-<section id="idiomas" class="hide">
-  <div class="sheet">
-    <div class="spread" style="margin-bottom:6px">
-      <div><div class="eyebrow">Trilhas</div><h2 style="font-size:23px;margin-top:4px">Qual idioma hoje?</h2></div>
-      <button class="chip" id="idi-x">Fechar</button>
+<!-- ================= PÁTIO (tela inicial) ================= -->
+<section id="scr-hub" class="hide">
+  <div class="wrap" style="max-width:640px;padding-top:calc(env(safe-area-inset-top) + 26px);padding-bottom:40px">
+    <div class="spread" style="margin-bottom:26px">
+      <div class="row" style="gap:10px">
+        <div class="brandmark" id="hub-mark" style="height:26px;margin:0"></div>
+        <span style="font-family:Fraunces,serif;font-size:19px;font-weight:700;letter-spacing:.12em">LINGUA</span>
+      </div>
+      <div class="row" style="gap:7px">
+        <button class="chip" id="hub-tema">Tema</button>
+        <button class="chip" id="hub-sair">Sair da conta</button>
+      </div>
     </div>
-    <div class="stack" id="idi-lista" style="margin-top:16px"></div>
-    <p class="muted" style="font-size:13px;margin:18px 0 0">Cada idioma tem nível, contagem de dias, ofensiva e vocabulário próprios. Trocar aqui não interfere no progresso do outro.</p>
+
+    <div class="eyebrow" id="hub-data">—</div>
+    <h1 style="font-size:29px;margin:8px 0 4px" id="hub-ola">Bom dia</h1>
+    <p class="muted" style="margin:0 0 26px;font-size:15px" id="hub-sub">Escolha o idioma de hoje.</p>
+
+    <div class="stack" id="hub-trilhas"></div>
+
+    <div class="card" style="margin-top:22px;background:transparent;box-shadow:none;border-style:dashed">
+      <div class="eyebrow">Somando tudo</div>
+      <div class="row" style="gap:0;margin-top:12px">
+        <div class="stat"><b id="hub-t-aulas">0</b><span>Aulas</span></div>
+        <div class="stat"><b id="hub-t-min">0</b><span>Minutos</span></div>
+        <div class="stat"><b id="hub-t-voc">0</b><span>Palavras</span></div>
+      </div>
+    </div>
+    <p class="center muted" style="font-size:11.5px;margin:26px 0 0">Francês, alemão e italiano entram quando você quiser.</p>
   </div>
 </section>
 
@@ -1445,8 +1481,8 @@ async function concluirAula(){
         </div>
         <p class="muted" style="font-size:14px;margin-top:18px">Revisões somam aos seus minutos de estudo e guardam sua melhor nota, mas não avançam a trilha nem contam para a ofensiva — essa continua sendo da aula do dia.</p>
       </div>`;
-    $('#ss-next').textContent='Fechar'; $('#ss-prev').classList.add('hide');
-    $('#ss-next').onclick=fecharSessao;
+    $('#ss-next').textContent='Voltar ao início'; $('#ss-prev').classList.add('hide');
+    $('#ss-next').onclick=()=>{ fecharSessao(); abrirHub(); };
     return;
   }
 
@@ -1479,41 +1515,70 @@ async function concluirAula(){
         <p class="muted" style="font-size:14px;margin:6px 0 0">${esc(NIVEL_TXT[perfil.nivel])}</p></div>`:''}
       <p class="muted" style="font-size:14px;margin-top:18px">As oito palavras de hoje entraram na sua revisão espaçada. Elas voltam amanhã, depois em dois dias, depois em quatro — até ficarem suas.</p>
     </div>`;
-  $('#ss-next').textContent='Fechar'; $('#ss-prev').classList.add('hide');
-  $('#ss-next').onclick=fecharSessao;
+  $('#ss-next').textContent='Voltar ao início'; $('#ss-prev').classList.add('hide');
+  $('#ss-next').onclick=()=>{ fecharSessao(); abrirHub(); };
 }
 /* ═══════════════════════════════════════════════════
    11. TELAS PRINCIPAIS
    ═══════════════════════════════════════════════════ */
-function abrirIdiomas(){
-  $('#idi-lista').innerHTML=Object.entries(IDIOMAS).map(([cod,c])=>{
+function abrirHub(){
+  ['#scr-auth','#scr-test','#scr-app','#session'].forEach(x=>$(x).classList.add('hide'));
+  $('#scr-hub').classList.remove('hide');
+  $('#hub-mark').innerHTML=[40,70,100,55,85,45,65].map(h=>`<i style="height:${h}%"></i>`).join('');
+  $('#hub-data').textContent=new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'});
+  $('#hub-ola').textContent=saudacao();
+
+  let tAulas=0,tMin=0,tVoc=0, algum=false;
+  $('#hub-trilhas').innerHTML=Object.entries(IDIOMAS).map(([cod,c])=>{
     const pf=TUDO.perfis.find(x=>x.idioma===cod);
-    const feitas=TUDO.licoes.filter(x=>x.idioma===cod&&x.status==='concluida').length;
-    const atual=cod===IDIOMA;
-    return `<button class="card row" data-idi="${cod}" style="width:100%;text-align:left;padding:16px;${atual?'border-color:var(--accent);border-width:2px':''}">
-      <span class="lvl">${pf?esc(pf.nivel):'—'}</span>
-      <div style="flex:1;min-width:0">
-        <b style="display:block;font-size:15.5px">${esc(c.nome)}</b>
-        <span class="muted" style="font-size:13px">${pf? feitas+' aula'+(feitas===1?'':'s')+' · ofensiva '+(pf.streak||0)+' · dia '+(pf.dia_atual||1) : 'ainda não iniciado'}</span>
+    const feitas=TUDO.licoes.filter(x=>x.idioma===cod&&x.status==='concluida');
+    const rever=TUDO.vocab.filter(x=>x.idioma===cod&&x.proxima_revisao<=hoje()).length;
+    const palavras=TUDO.vocab.filter(x=>x.idioma===cod).length;
+    const hojeFeita=feitas.some(x=>String(x.concluida_em||'').slice(0,10)===hoje());
+    if(pf){ algum=true; tAulas+=feitas.length; tMin+=pf.minutos||0; tVoc+=palavras; }
+    const idx=pf? (pf.nivel_indice??NIVEIS.indexOf(pf.nivel)) : -1;
+
+    if(!pf) return `<button class="trilha nova" data-idi="${cod}">
+      <div class="row"><span class="sigla">${c.sigla}</span>
+        <div style="flex:1"><b style="font-size:16.5px">${esc(c.nome)}</b>
+          <div class="muted" style="font-size:13.5px">Trilha ainda não iniciada</div></div>
+        <span class="chip">Começar</span></div></button>`;
+
+    return `<button class="trilha" data-idi="${cod}">
+      <div class="spread">
+        <div class="row" style="gap:9px"><span class="sigla">${c.sigla}</span>
+          <b style="font-size:16.5px">${esc(c.nome)}</b></div>
+        <span class="lvl">${esc(pf.nivel)}</span>
       </div>
-      <span class="chip ${atual?'accent':''}">${atual?'Em estudo':(pf?'Retomar':'Começar')}</span>
-    </button>`;
+      <div class="mini">${NIVEIS.map((n,k)=>`<div class="${k===idx?'on':k<idx?'past':''}"></div>`).join('')}</div>
+      <div class="row" style="gap:0">
+        <div class="stat"><b>${feitas.length}</b><span>Aulas</span></div>
+        <div class="stat"><b>${pf.minutos||0}</b><span>Minutos</span></div>
+        <div class="stat"><b>${palavras}</b><span>Palavras</span></div>
+        <div class="stat"><b>${pf.streak||0}</b><span>Ofensiva</span></div>
+      </div>
+      <div class="spread" style="margin-top:16px;padding-top:14px;border-top:1px solid var(--line)">
+        <span class="muted" style="font-size:13.5px;flex:1">
+          ${hojeFeita? 'Aula de hoje concluída ✓' : 'Aula '+(pf.dia_atual||1)+' pronta'}${rever? ' · '+rever+' a revisar':''}
+        </span>
+        <span class="chip ${hojeFeita?'':'accent'}">${hojeFeita?'Estudar mais':'Estudar'}</span>
+      </div></button>`;
   }).join('');
-  $$('#idi-lista [data-idi]').forEach(b=>b.onclick=()=>trocarIdioma(b.dataset.idi));
-  $('#idiomas').classList.remove('hide');
+
+  $('#hub-sub').textContent = algum? 'Escolha o idioma de hoje.' : 'Escolha por onde começar. Um teste rápido define seu nível.';
+  $('#hub-t-aulas').textContent=tAulas; $('#hub-t-min').textContent=tMin; $('#hub-t-voc').textContent=tVoc;
+  $$('#hub-trilhas [data-idi]').forEach(b=>b.onclick=()=>entrarIdioma(b.dataset.idi));
 }
-function trocarIdioma(cod){
-  $('#idiomas').classList.add('hide');
-  if(cod===IDIOMA) return;
+function entrarIdioma(cod){
   IDIOMA=cod; aplicarIdioma(); chat=[]; carregarVozes();
   if(!perfil||!perfil.nivel){ toast('Vamos medir seu nível de '+L().nome.toLowerCase()+' primeiro.',4000); return iniciarTeste(); }
-  abrirApp(); toast('Agora estudando '+L().nome.toLowerCase());
+  abrirApp();
 }
 function saudacao(){const h=new Date().getHours();return h<12?'Bom dia':h<18?'Boa tarde':'Boa noite'}
 
 function render(){
   if(!perfil) return;
-  $('#hd-idioma').textContent=L().sigla;
+  $('#hd-idioma').textContent='‹ '+L().sigla;
   $('#hd-lvl').textContent=perfil.nivel;
   $('#hd-name').textContent=saudacao();
   $('#hd-day').textContent='Aula '+(perfil.dia_atual||1);
@@ -1707,7 +1772,7 @@ function aba(nome){
   window.scrollTo(0,0);
 }
 function abrirApp(){
-  $('#scr-auth').classList.add('hide'); $('#scr-test').classList.add('hide');
+  $('#scr-auth').classList.add('hide'); $('#scr-test').classList.add('hide'); $('#scr-hub').classList.add('hide');
   $('#scr-app').classList.remove('hide');
   $('#cf-mail').textContent=user.email;
   $('#cf-idiomanome').textContent=L().nome;
@@ -1721,10 +1786,11 @@ function ligarEventos(){
   $('#bmark').innerHTML=[40,70,100,55,85,45,65].map(h=>`<i style="height:${h}%"></i>`).join('');
   $$('nav.tabs button').forEach(b=>b.onclick=()=>aba(b.dataset.tab));
   $('#hj-go').onclick=()=>abrirSessao();
-  $('#hd-idioma').onclick=abrirIdiomas;
-  $('#idi-x').onclick=()=>$('#idiomas').classList.add('hide');
-  $('#idiomas').onclick=e=>{ if(e.target.id==='idiomas') $('#idiomas').classList.add('hide'); };
-  $('#cf-idioma').onclick=abrirIdiomas;
+  $('#hd-idioma').onclick=abrirHub;
+  $('#cf-idioma').onclick=abrirHub;
+  $('#hub-tema').onclick=()=>{ PREF.theme=PREF.theme==='dark'?'light':'dark'; savePref();
+    document.documentElement.dataset.theme=PREF.theme; };
+  $('#hub-sair').onclick=async()=>{ if(confirm('Sair da conta? Você precisará entrar de novo com e-mail e senha.')){ await sb.auth.signOut(); location.reload(); } };
   $('#hj-srsgo').onclick=()=>{aba('pratica');abrirPratica('srs')};
   $$('[data-prat]').forEach(b=>b.onclick=()=>abrirPratica(b.dataset.prat));
   $('#ss-close').onclick=()=>{ if(confirm('Sair da aula? Seu progresso desta sessão não será salvo.')) fecharSessao(); };
@@ -1767,7 +1833,8 @@ async function autenticar(modo){
 
 async function iniciar(u){
   user=u; await carregarTudo();
-  if(!perfil||!perfil.nivel) iniciarTeste(); else abrirApp();
+  $('#scr-auth').classList.add('hide');
+  abrirHub();
 }
 
 (async function main(){
