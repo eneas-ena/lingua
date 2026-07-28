@@ -121,8 +121,9 @@ main{padding-bottom:110px;padding-top:18px}
 
 /* ---------- vocabulário ---------- */
 .vcard{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);overflow:hidden;box-shadow:var(--shadow)}
-.ph{background:var(--surface-3);display:flex;align-items:center;justify-content:center;overflow:hidden}
-.ph img{width:100%;height:100%;object-fit:cover;display:block}
+.ph{background:var(--surface-3);display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;position:relative}
+.ph img{width:100%;height:100%;object-fit:cover;display:block;position:absolute;inset:0}
+.semfoto-msg{font-size:11px;color:var(--ink-faint);margin-top:6px;padding:0 14px;text-align:center;line-height:1.4}
 .vcard .ph{aspect-ratio:16/10}
 .ph .fallback{font-family:'Fraunces',serif;font-size:44px;color:var(--ink-faint)}
 .credito{font-size:11px;color:var(--ink-faint);text-align:center;margin:14px 0 0}
@@ -840,27 +841,37 @@ async function fonteOpenverse(termo){
 const FONTES=[['Wikimedia Commons',fonteCommons],['Wikipédia',fonteWikipedia],['Openverse',fonteOpenverse]];
 
 async function buscarImagem(termo,registrar){
-  if(PREF.semFotos) return null;
+  if(PREF.semFotos) return {src:null,motivo:'fotos desligadas'};
   const chave='foto2:'+termo.toLowerCase();
   const guardado=localStorage.getItem(chave);
-  if(guardado){ if(registrar) DIAG_FOTO.push(['memória','já buscado antes',guardado==='0'?'sem foto':'ok']); 
-                return guardado==='0'? null : guardado; }
-
+  if(guardado){
+    if(registrar) DIAG_FOTO.push(['memória','busca anterior guardada',guardado==='0'?'— nada':'✓ achou']);
+    return {src: guardado==='0'?null:guardado, motivo:'busca anterior sem resultado'};
+  }
+  let motivo='nenhum acervo respondeu';
   for(const [nome,fn] of FONTES){
     try{
       const r=await fn(termo);
       if(registrar) DIAG_FOTO.push([nome, r.nota, r.src?'✓ achou':'— nada']);
-      if(r.src){ try{localStorage.setItem(chave,r.src)}catch(e){} return r.src; }
+      if(r.src){ try{localStorage.setItem(chave,r.src)}catch(e){} return {src:r.src,motivo:''}; }
+      motivo=nome+': '+r.nota;
     }catch(e){
-      const causa = /Failed to fetch|NetworkError|Load failed/i.test(e.message)
-        ? 'bloqueado pelo navegador (CORS ou rede)' : e.message;
-      if(registrar) DIAG_FOTO.push([nome, causa, '✕ erro']);
+      const rede=/Failed to fetch|NetworkError|Load failed|CORS/i.test(e.message||'');
+      motivo = nome+': '+(rede?'conexão bloqueada':(e.message||'erro'));
+      if(registrar) DIAG_FOTO.push([nome, rede?'bloqueado pelo navegador (CORS ou rede)':(e.message||'erro'), '✕ erro']);
     }
   }
   try{ localStorage.setItem(chave,'0'); }catch(e){}
-  return null;
+  return {src:null,motivo};
 }
 
+function semFoto(el,motivo){
+  el.classList.add('semfoto');
+  const letra=el.querySelector('.fallback');
+  const aviso=document.createElement('small');
+  aviso.className='semfoto-msg'; aviso.textContent=motivo||'sem foto';
+  el.innerHTML=''; if(letra) el.appendChild(letra); el.appendChild(aviso);
+}
 async function montarImagens(escopo){
   const alvos=$$('[data-img]',escopo);
   let primeiro=true;
@@ -869,14 +880,18 @@ async function montarImagens(escopo){
     const registrar=primeiro; primeiro=false;
     if(registrar) DIAG_FOTO=[['palavra buscada',termo,'']];
     el.classList.add('carregando');
-    const src=await buscarImagem(termo,registrar);
+    const {src,motivo}=await buscarImagem(termo,registrar);
     el.classList.remove('carregando');
-    if(!src){ el.classList.add('semfoto'); return; }
-    const im=new Image(); im.alt=termo; im.loading='lazy';
-    im.onload=()=>{ el.innerHTML=''; el.appendChild(im); };
-    im.onerror=()=>{ el.classList.add('semfoto');
+    if(!src) return semFoto(el,motivo);
+    // a imagem entra no documento imediatamente e aparece ao carregar:
+    // imagem solta na memória pode nunca ser buscada pelo navegador
+    const im=document.createElement('img');
+    im.alt=termo; im.referrerPolicy='no-referrer'; im.style.opacity='0';
+    im.style.transition='opacity .3s ease';
+    im.onload=()=>{ el.querySelectorAll('.fallback,.semfoto-msg').forEach(x=>x.remove()); im.style.opacity='1'; };
+    im.onerror=()=>{ im.remove(); semFoto(el,'a imagem não abriu (hotlink bloqueado)');
       if(registrar) DIAG_FOTO.push(['carregamento','a imagem não abriu','✕ erro']); };
-    im.src=src;
+    el.appendChild(im); im.src=src;
   }));
 }
 
@@ -1949,7 +1964,7 @@ function ligarEventos(){
     const palavra = IDIOMA==='es' ? 'mercado' : 'market';
     ['foto2:'+palavra].forEach(k=>localStorage.removeItem(k));
     DIAG_FOTO=[['palavra buscada',palavra,'']];
-    const src=await buscarImagem(palavra,true);
+    const {src}=await buscarImagem(palavra,true);
     PREF.semFotos=antes;
     cx.innerHTML=`
       <div class="card" style="padding:14px">
