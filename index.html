@@ -178,6 +178,12 @@ main{padding-bottom:110px;padding-top:18px}
   animation:sp .7s linear infinite;display:inline-block}
 @keyframes sp{to{transform:rotate(360deg)}}
 .loading{display:flex;flex-direction:column;align-items:center;gap:14px;padding:56px 20px;color:var(--ink-soft);text-align:center}
+.hist{border-bottom:1px solid var(--line)}
+.hist:last-child{border-bottom:0}
+.hist-top{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:11px 0}
+.hist-top .seta-hist{color:var(--ink-faint);font-size:19px;transition:transform .2s ease;display:inline-block}
+.hist-top.aberto .seta-hist{transform:rotate(90deg);color:var(--accent)}
+.hist-blocos{display:flex;flex-wrap:wrap;gap:7px;padding:2px 0 14px}
 .fix{padding:11px 0;border-bottom:1px solid var(--line);font-size:14.5px}
 .fix:last-child{border-bottom:0}
 .fix s{color:var(--warn);text-decoration-thickness:1.5px}
@@ -260,7 +266,15 @@ main{padding-bottom:110px;padding-top:18px}
       <div class="stack" id="hj-blocos"></div>
 
       <div class="divider"></div>
-      <div class="card">
+      <div class="card hide" id="hj-ultima">
+        <div class="eyebrow">Aula anterior</div>
+        <div class="spread" style="margin-top:10px">
+          <div style="flex:1;min-width:0"><b id="hj-ultima-t" style="display:block"></b>
+          <span class="muted" style="font-size:13px" id="hj-ultima-s"></span></div>
+          <button class="btn soft sm" id="hj-ultima-go">Rever</button>
+        </div>
+      </div>
+      <div class="card" style="margin-top:14px">
         <div class="eyebrow">Revisão pendente</div>
         <div class="spread" style="margin-top:10px">
           <div><b style="font-size:22px;font-family:Fraunces,serif" id="hj-srs">0</b>
@@ -394,7 +408,10 @@ main{padding-bottom:110px;padding-top:18px}
 <section id="session" class="hide">
   <div class="shead">
     <div class="spread" style="margin-bottom:10px">
-      <button class="chip" id="ss-close">✕ Sair</button>
+      <div class="row" style="gap:8px">
+        <button class="chip" id="ss-close">✕ Sair</button>
+        <span class="chip accent hide" id="ss-modo">Revisão</span>
+      </div>
       <div class="row" style="gap:8px">
         <button class="chip" id="ss-speed">Velocidade 0,90×</button>
         <div class="chip brass mono" id="ss-clock">00:00</div>
@@ -923,19 +940,21 @@ function atualizarRail(){
   const s=Math.floor((Date.now()-S.t0)/1000);
   $('#ss-clock').textContent=String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');
 }
-async function abrirSessao(){
+async function abrirSessao(licaoAntiga,blocoInicial){
   $('#session').classList.remove('hide');
-  $('#ss-body').innerHTML=loadingHTML('Preparando sua aula de hoje. Isso leva alguns segundos…');
+  $('#ss-body').innerHTML=loadingHTML(licaoAntiga?'Reabrindo a aula…':'Preparando sua aula de hoje. Isso leva alguns segundos…');
   railHTML('#ss-rail');
   let licao;
-  try{ licao=await aulaDoDia(); }
+  try{ licao = licaoAntiga || await aulaDoDia(); }
   catch(e){
     $('#ss-body').innerHTML=`<div class="card"><b>Não consegui montar a aula agora.</b>
       <p class="muted" style="font-size:14px">${esc(e.message)}</p>
       <button class="btn block" onclick="location.reload()">Tentar de novo</button></div>`;
     return;
   }
-  S={licao,c:licao.conteudo,b:0,t0:Date.now(),resp:{},notas:{},timer:setInterval(atualizarRail,1000)};
+  S={licao,c:licao.conteudo,b:blocoInicial||0,t0:Date.now(),resp:{},notas:{},
+     revisao:!!licaoAntiga,timer:setInterval(atualizarRail,1000)};
+  $('#ss-modo').classList.toggle('hide',!S.revisao);
   mostrarVel();
   $('#ss-next').onclick=()=>{ if(S.b>=BLOCOS.length-1) concluirAula(); else {S.b++;renderBloco()} };
   renderBloco();
@@ -1242,6 +1261,30 @@ async function concluirAula(){
   const min=Math.min(45,Math.max(5,Math.round((Date.now()-S.t0)/60000)));
   $('#ss-body').innerHTML=loadingHTML('Salvando seu progresso…');
   await adicionarVocab(S.c.vocabulario||[]);
+
+  if(S.revisao){
+    const melhor=Math.max(nota,S.licao.nota||0);
+    await sb.from('ln_licoes').update({nota:melhor}).eq('id',S.licao.id);
+    const li=licoes.find(x=>x.id===S.licao.id); if(li) li.nota=melhor;
+    await salvarPerfil({minutos:(perfil.minutos||0)+min});
+    $('#ss-body').innerHTML=`
+      <div class="center" style="padding-top:22px">
+        <div style="font-family:Fraunces,serif;font-size:56px;line-height:1">↺</div>
+        <h1 style="font-size:26px;margin:12px 0 6px">Revisão concluída</h1>
+        <p class="muted" style="font-size:15px">Aula ${S.licao.dia_num} · ${min} minutos · ${acertos} de ${total} acertos</p>
+        <div class="card" style="margin-top:20px;text-align:left">
+          <div class="row" style="gap:0">
+            <div class="stat"><b>${nota}%</b><span>Agora</span></div>
+            <div class="stat"><b>${melhor}%</b><span>Melhor marca</span></div>
+          </div>
+        </div>
+        <p class="muted" style="font-size:14px;margin-top:18px">Revisões somam aos seus minutos de estudo e guardam sua melhor nota, mas não avançam a trilha nem contam para a ofensiva — essa continua sendo da aula do dia.</p>
+      </div>`;
+    $('#ss-next').textContent='Fechar'; $('#ss-prev').classList.add('hide');
+    $('#ss-next').onclick=fecharSessao;
+    return;
+  }
+
   await sb.from('ln_licoes').update({status:'concluida',nota,concluida_em:new Date().toISOString()}).eq('id',S.licao.id);
   const l=licoes.find(x=>x.id===S.licao.id); if(l){l.status='concluida';l.nota=nota;l.concluida_em=new Date().toISOString()}
   const ontem=new Date(); ontem.setDate(ontem.getDate()-1);
@@ -1296,6 +1339,13 @@ function render(){
     <div style="flex:1"><b>${b.nome}</b></div><span class="chip">${b.min} min</span></div>`).join('');
   const dev=vocabDevido().length;
   $('#hj-srs').textContent=dev; $('#pr-srs').textContent=dev;
+  const ant=licoes.filter(l=>l.dia_num<(perfil.dia_atual||1)).sort((a,b)=>b.dia_num-a.dia_num)[0];
+  $('#hj-ultima').classList.toggle('hide',!ant);
+  if(ant){
+    $('#hj-ultima-t').textContent='#'+ant.dia_num+' · '+(ant.titulo||'Aula '+ant.dia_num);
+    $('#hj-ultima-s').textContent=(ant.nota!=null?ant.nota+'% de aproveitamento':'não terminada')+' · todas as aulas ficam em Progresso';
+    $('#hj-ultima-go').onclick=()=>abrirSessao(ant,0);
+  }
   renderProgresso();
 }
 
@@ -1313,11 +1363,35 @@ function renderProgresso(){
     const l=conc.find(x=>String(x.concluida_em||'').slice(0,10)===d);
     return `<div class="${l?'f':''}" style="height:${l?Math.max(20,l.nota||60):8}%" title="${d}"></div>`;
   }).join('');
-  $('#pg-hist').innerHTML=conc.slice(0,12).map(l=>`<div class="row" style="padding:9px 0;border-bottom:1px solid var(--line)">
-    <span class="mono muted" style="font-size:12.5px;width:44px">#${l.dia_num}</span>
-    <div style="flex:1;font-size:14.5px">${esc(l.titulo||'')}</div>
-    <span class="chip ${l.nota>=70?'accent':''}">${l.nota??'—'}%</span></div>`).join('')
-    || '<p class="muted" style="font-size:14px;margin:0">Nenhuma aula concluída ainda.</p>';
+  const passadas=licoes.filter(l=>l.dia_num<(perfil.dia_atual||1)).sort((a,b)=>b.dia_num-a.dia_num);
+  $('#pg-hist').innerHTML = passadas.length? passadas.slice(0,30).map(l=>`
+    <div class="hist">
+      <button class="hist-top" data-abre="${l.id}">
+        <span class="mono muted" style="font-size:12.5px;width:38px;text-align:left">#${l.dia_num}</span>
+        <div style="flex:1;min-width:0">
+          <b style="font-size:14.5px;display:block">${esc(l.titulo||'Aula '+l.dia_num)}</b>
+          <span class="muted" style="font-size:12.5px">${esc(l.nivel||'')} · ${l.status==='concluida'?'concluída':'não terminada'}${l.concluida_em?' em '+new Date(l.concluida_em).toLocaleDateString('pt-BR'):''}</span>
+        </div>
+        <span class="chip ${l.nota>=70?'accent':''}">${l.nota??'—'}%</span>
+        <span class="seta-hist">›</span>
+      </button>
+      <div class="hist-blocos hide" id="hb${l.id}">
+        <p class="muted" style="font-size:12.5px;margin:0 0 8px;width:100%">Refazer a aula inteira ou entrar direto num bloco:</p>
+        <button class="chip accent" data-rever="${l.id}" data-bloco="0">Aula completa</button>
+        ${BLOCOS.map((b,i)=>`<button class="chip" data-rever="${l.id}" data-bloco="${i}">${b.nome}</button>`).join('')}
+      </div>
+    </div>`).join('')
+   : '<p class="muted" style="font-size:14px;margin:0">Nenhuma aula anterior ainda. A partir da segunda aula elas aparecem aqui para você reabrir quando quiser.</p>';
+  $$('#pg-hist .hist-top').forEach(b=>b.onclick=()=>{
+    const alvo=$('#hb'+b.dataset.abre); const abrindo=alvo.classList.contains('hide');
+    $$('#pg-hist .hist-blocos').forEach(x=>x.classList.add('hide'));
+    $$('#pg-hist .hist-top').forEach(x=>x.classList.remove('aberto'));
+    if(abrindo){ alvo.classList.remove('hide'); b.classList.add('aberto'); }
+  });
+  $$('#pg-hist [data-rever]').forEach(b=>b.onclick=()=>{
+    const l=licoes.find(x=>String(x.id)===b.dataset.rever);
+    if(l) abrirSessao(l,Number(b.dataset.bloco));
+  });
 }
 
 /* --- prática livre --- */
