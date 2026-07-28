@@ -542,11 +542,46 @@ async function ia(prompt,{system='',model=CFG.MODEL_FAST,max=2200,hist=[]}={}){
   if(d.error) throw new Error(d.error.message||'Erro da IA');
   return (d.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('\n').trim();
 }
+/* isola o objeto JSON dentro da resposta */
+function fatiarJSON(txt){
+  let t=String(txt||'').trim();
+  t=t.replace(/^```(?:json)?\s*/i,'').replace(/```\s*$/,'').trim();
+  const a=t.indexOf('{'), b=t.lastIndexOf('}');
+  return (a>=0 && b>a) ? t.slice(a,b+1) : t;
+}
+/* conserta os dois defeitos que os modelos cometem em texto literário:
+   aspas duplas não escapadas dentro de diálogos e quebras de linha cruas */
+function repararJSON(t){
+  let out='', dentro=false, escapado=false;
+  for(let i=0;i<t.length;i++){
+    const c=t[i];
+    if(escapado){ out+=c; escapado=false; continue; }
+    if(c==='\\'){ out+=c; escapado=true; continue; }
+    if(!dentro){ if(c==='"') dentro=true; out+=c; continue; }
+    if(c==='"'){
+      let j=i+1; while(j<t.length && /\s/.test(t[j])) j++;
+      if(j>=t.length || ',}]:'.indexOf(t[j])>=0){ dentro=false; out+=c; }
+      else out+='\\"';                    // aspas de diálogo: escapa
+      continue;
+    }
+    if(c==='\n'){ out+='\\n'; continue; }
+    if(c==='\r'){ out+='\\r'; continue; }
+    if(c==='\t'){ out+='\\t'; continue; }
+    out+=c;
+  }
+  return out.replace(/,\s*([}\]])/g,'$1');   // vírgula sobrando antes de fechar
+}
 async function iaJSON(prompt,opt={}){
-  const raw = await ia(prompt,opt);
-  const clean = raw.replace(/^```(?:json)?/i,'').replace(/```$/,'').trim();
-  const a=clean.indexOf('{'), b=clean.lastIndexOf('}');
-  return JSON.parse(a>=0? clean.slice(a,b+1) : clean);
+  const bruto = await ia(prompt,opt);
+  const t = fatiarJSON(bruto);
+  try{ return JSON.parse(t); }catch(e){}
+  try{ return JSON.parse(repararJSON(t)); }catch(e){}
+  // último recurso: a própria IA reescreve o JSON quebrado
+  const consertado = await ia(
+    'O JSON abaixo está inválido. Devolva-o corrigido, com exatamente o mesmo conteúdo, '+
+    'escapando corretamente aspas e quebras de linha dentro dos textos. Sem markdown, sem comentários.\n\n'+t,
+    {model:CFG.MODEL_FAST,max:opt.max||4000});
+  return JSON.parse(repararJSON(fatiarJSON(consertado)));
 }
 
 /* ═══════════════════════════════════════════════════
@@ -983,7 +1018,8 @@ REGRAS DE PRODUÇÃO:
 - Traduções em português do Brasil, naturais, não literais.
 ${L().nota}`;
 }
-const REGRA_JSON = `\n\nFORMATO DA RESPOSTA: responda SOMENTE com JSON válido. Sem markdown, sem crases, sem comentários, sem texto antes ou depois.`;
+const REGRA_JSON = `\n\nFORMATO DA RESPOSTA: responda SOMENTE com JSON válido. Sem markdown, sem crases, sem comentários, sem texto antes ou depois.
+CRÍTICO: dentro dos valores de texto NUNCA use aspas duplas ("). Para falas e citações use travessão (—) ou aspas angulares («»). Nunca quebre linha dentro de um valor de texto.`;
 
 function esquemaAula(){
   const I=L().adj;
@@ -1015,14 +1051,23 @@ Produza exatamente 8 itens de vocabulário, 3 perguntas de leitura, 3 de audiç�
 
 Responda SOMENTE com este JSON:
 ${esquemaAula()}`;
-  return await iaJSON(prompt,{system:sistemaProfessor()+REGRA_JSON,model:CFG.MODEL_SMART,max:4000});
+  return await iaJSON(prompt,{system:sistemaProfessor()+REGRA_JSON,model:CFG.MODEL_SMART,max:8000});
 }
 
-async function aulaDoDia(){
+async function aulaDoDia(aviso){
   const dia=perfil.dia_atual||1;
   const existente=licoes.find(l=>l.dia_num===dia);
   if(existente) return existente;
-  const conteudo=await gerarAula(dia,perfil.nivel);
+  let conteudo=null, ultimo=null;
+  for(let tentativa=1; tentativa<=3; tentativa++){
+    try{ conteudo=await gerarAula(dia,perfil.nivel); break; }
+    catch(e){
+      ultimo=e; console.warn('tentativa '+tentativa+' falhou:',e.message);
+      if(tentativa<3){ aviso && aviso(tentativa); await sleep(800); }
+    }
+  }
+  if(!conteudo) throw ultimo||new Error('não foi possível montar a aula');
+  if(!conteudo.vocabulario||!conteudo.leitura) throw new Error('a aula veio incompleta');
   const {data,error}=await sb.from('ln_licoes').insert({
     user_id:user.id,idioma:IDIOMA,dia_num:dia,nivel:perfil.nivel,titulo:conteudo.titulo,
     tema:conteudo.tema,conteudo,status:'aberta'
@@ -1055,11 +1100,20 @@ async function abrirSessao(licaoAntiga,blocoInicial){
   $('#ss-body').innerHTML=loadingHTML(licaoAntiga?'Reabrindo a aula…':'Preparando sua aula de hoje. Isso leva alguns segundos…');
   railHTML('#ss-rail');
   let licao;
-  try{ licao = licaoAntiga || await aulaDoDia(); }
+  try{
+    licao = licaoAntiga || await aulaDoDia(n=>{
+      $('#ss-body').innerHTML=loadingHTML('A primeira tentativa não deu certo. Refazendo… ('+(n+1)+' de 3)');
+    });
+  }
   catch(e){
-    $('#ss-body').innerHTML=`<div class="card"><b>Não consegui montar a aula agora.</b>
-      <p class="muted" style="font-size:14px">${esc(e.message)}</p>
-      <button class="btn block" onclick="location.reload()">Tentar de novo</button></div>`;
+    $('#ss-body').innerHTML=`<div class="card">
+      <b style="font-size:17px">Não consegui montar a aula agora.</b>
+      <p class="muted" style="font-size:14px;margin:8px 0 4px">Tentei três vezes. Isso costuma ser instabilidade momentânea do serviço.</p>
+      <p class="muted mono" style="font-size:12px;background:var(--surface-2);padding:10px;border-radius:10px">${esc(e.message)}</p>
+      <button class="btn block" id="ss-retry" style="margin-top:12px">Tentar de novo</button>
+      <button class="btn ghost block" id="ss-volta" style="margin-top:10px">Voltar</button></div>`;
+    $('#ss-retry').onclick=()=>abrirSessao(licaoAntiga,blocoInicial);
+    $('#ss-volta').onclick=fecharSessao;
     return;
   }
   S={licao,c:licao.conteudo,b:blocoInicial||0,t0:Date.now(),resp:{},notas:{},
