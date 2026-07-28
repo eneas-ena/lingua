@@ -75,6 +75,8 @@ input,textarea,select{font-family:inherit;font-size:16px;color:var(--ink)}
   background:var(--surface-2);border:1px solid var(--line);font-size:12.5px;font-weight:600;color:var(--ink-soft)}
 .chip.accent{background:var(--accent-soft);color:var(--accent);border-color:transparent}
 .chip.brass{background:var(--brass-soft);color:var(--brass);border-color:transparent}
+.chip.icone{padding:7px;width:34px;height:34px;justify-content:center;color:var(--ink-soft)}
+.chip.icone svg{width:18px;height:18px;display:block}
 
 .field{display:block;margin-bottom:14px}
 .field span{display:block;font-size:12.5px;font-weight:700;color:var(--ink-soft);margin-bottom:6px}
@@ -119,9 +121,15 @@ main{padding-bottom:110px;padding-top:18px}
 
 /* ---------- vocabulário ---------- */
 .vcard{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);overflow:hidden;box-shadow:var(--shadow)}
-.vcard .ph{aspect-ratio:16/10;background:var(--surface-3);display:flex;align-items:center;justify-content:center;overflow:hidden}
-.vcard .ph img{width:100%;height:100%;object-fit:cover}
-.vcard .ph .fallback{font-family:'Fraunces',serif;font-size:44px;color:var(--ink-faint)}
+.ph{background:var(--surface-3);display:flex;align-items:center;justify-content:center;overflow:hidden}
+.ph img{width:100%;height:100%;object-fit:cover;display:block}
+.vcard .ph{aspect-ratio:16/10}
+.ph .fallback{font-family:'Fraunces',serif;font-size:44px;color:var(--ink-faint)}
+.credito{font-size:11px;color:var(--ink-faint);text-align:center;margin:14px 0 0}
+.ph.carregando{background:linear-gradient(100deg,var(--surface-3) 30%,var(--surface-2) 50%,var(--surface-3) 70%);
+  background-size:220% 100%;animation:brilho 1.3s ease-in-out infinite}
+@keyframes brilho{from{background-position:120% 0}to{background-position:-20% 0}}
+.ph.semfoto{opacity:.5}
 .vcard .body{padding:16px 18px 18px}
 .word{font-family:'Fraunces',serif;font-size:29px;font-weight:600}
 .ipa{font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--accent);margin-top:2px}
@@ -381,7 +389,7 @@ main{padding-bottom:110px;padding-top:18px}
       <h1 style="font-size:25px;margin-bottom:16px">Ajustes</h1>
       <div class="card" style="margin-bottom:14px">
         <div class="spread"><div><b>Tema escuro</b><div class="muted" style="font-size:13px">Melhor para estudar à noite</div></div>
-          <button class="chip" id="cf-theme">Alternar</button></div>
+          <button class="chip icone" id="cf-theme" aria-label="Alternar tema claro e escuro"></button></div>
         <div class="divider"></div>
         <div><div class="spread"><b>Velocidade da fala</b><span class="chip mono" id="cf-ratetxt">0,90×</span></div>
           <div class="muted" style="font-size:13px;margin:2px 0 8px">Vale para todos os botões ▶. O botão <b>Devagar</b> toca 0,30 abaixo disso.</div>
@@ -409,6 +417,11 @@ main{padding-bottom:110px;padding-top:18px}
           <div><b id="cf-idiomanome">—</b><div class="muted" style="font-size:13px">Cada idioma tem sua própria trilha</div></div>
           <button class="btn soft sm" id="cf-idioma">Trocar</button>
         </div>
+      </div>
+      <div class="card" style="margin-top:14px">
+        <div class="spread"><div><b>Fotos do vocabulário</b>
+          <div class="muted" style="font-size:13px">Imagens do acervo Wikimedia Commons nas palavras novas e na revisão</div></div>
+          <button class="chip" id="cf-fotos">—</button></div>
       </div>
       <div class="card" style="margin-top:14px">
         <div class="eyebrow">Diagnóstico de áudio</div>
@@ -446,7 +459,7 @@ main{padding-bottom:110px;padding-top:18px}
         <span style="font-family:Fraunces,serif;font-size:19px;font-weight:700;letter-spacing:.12em">LINGUA</span>
       </div>
       <div class="row" style="gap:7px">
-        <button class="chip" id="hub-tema">Tema</button>
+        <button class="chip icone" id="hub-tema" aria-label="Alternar tema claro e escuro"></button>
         <button class="chip" id="hub-sair">Sair da conta</button>
       </div>
     </div>
@@ -772,27 +785,56 @@ function notaFala(alvo,dito){
 /* ═══════════════════════════════════════════════════
    6. IMAGENS — Wikimedia Commons
    ═══════════════════════════════════════════════════ */
+const FOTO_RUIM=/(\bmap\b|karte|mapa|diagram|chart|logo|flag|bandera|coat.of.arms|escudo|seal|icon|graph|plot|schematic|blueprint|signature|stamp|banknote|barcode|screenshot|poster|cover|title.page|manuscript|inscription)/i;
+
 async function buscarImagem(termo){
-  const k='img:'+termo.toLowerCase();
-  const c=localStorage.getItem(k); if(c) return c==='0'?null:c;
-  try{
-    const url='https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrnamespace=6'
-      +'&gsrsearch='+encodeURIComponent(termo+' filetype:bitmap')
-      +'&gsrlimit=1&prop=imageinfo&iiprop=url&iiurlwidth=560&format=json&origin=*';
-    const j=await (await fetch(url)).json();
-    const pg=j?.query?.pages; const first=pg&&Object.values(pg)[0];
-    const src=first?.imageinfo?.[0]?.thumburl||null;
-    try{localStorage.setItem(k,src||'0')}catch(e){}
-    return src;
-  }catch(e){ return null; }
-}
-async function montarImagens(escopo){
-  for(const el of $$('[data-img]',escopo)){
-    const termo=el.dataset.img; el.removeAttribute('data-img');
-    const src=await buscarImagem(termo);
-    if(src){ const im=new Image(); im.src=src; im.alt=termo; im.loading='lazy';
-      im.onload=()=>{el.innerHTML=''; el.appendChild(im)}; }
+  if(PREF.semFotos) return null;
+  const chave='foto:'+termo.toLowerCase();
+  const guardado=localStorage.getItem(chave);
+  if(guardado) return guardado==='0'? null : guardado;
+
+  // duas tentativas: o termo como veio e sem o artigo inicial
+  const consultas=[termo, termo.replace(/^(the|a|an|el|la|los|las|un|una|le|les|der|die|das|il|lo)\s+/i,'')]
+    .filter((v,i,a)=>v && a.indexOf(v)===i);
+
+  for(const q of consultas){
+    try{
+      const url='https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrnamespace=6'
+        +'&gsrsearch='+encodeURIComponent(q+' filetype:bitmap')
+        +'&gsrlimit=10&prop=imageinfo&iiprop=url|size&iiurlwidth=640&format=json&origin=*';
+      const j=await (await fetch(url)).json();
+      const pgs=j&&j.query&&j.query.pages; if(!pgs) continue;
+      const bons=Object.values(pgs)
+        .filter(p=>/\.(jpe?g|png)$/i.test(p.title||''))       // nada de SVG, GIF ou TIFF
+        .filter(p=>!FOTO_RUIM.test(p.title||''))                // nada de mapa, brasão, diagrama
+        .filter(p=>p.imageinfo && p.imageinfo[0] && p.imageinfo[0].thumburl)
+        .filter(p=>(p.imageinfo[0].width||0) >= 400)            // nada de miniatura
+        .sort((a,b)=>(a.index||99)-(b.index||99));              // respeita a ordem de relevância
+      if(bons.length){
+        const src=bons[0].imageinfo[0].thumburl;
+        try{ localStorage.setItem(chave,src); }catch(e){}
+        return src;
+      }
+    }catch(e){ /* rede fora, segue sem foto */ }
   }
+  try{ localStorage.setItem(chave,'0'); }catch(e){}
+  return null;
+}
+
+/* carrega todas as fotos do bloco em paralelo */
+async function montarImagens(escopo){
+  const alvos=$$('[data-img]',escopo);
+  await Promise.all(alvos.map(async el=>{
+    const termo=el.dataset.img; el.removeAttribute('data-img');
+    el.classList.add('carregando');
+    const src=await buscarImagem(termo);
+    el.classList.remove('carregando');
+    if(!src){ el.classList.add('semfoto'); return; }
+    const im=new Image(); im.alt=termo; im.loading='lazy';
+    im.onload=()=>{ el.innerHTML=''; el.appendChild(im); };
+    im.onerror=()=>el.classList.add('semfoto');
+    im.src=src;
+  }));
 }
 
 /* ═══════════════════════════════════════════════════
@@ -937,9 +979,25 @@ function iniciarTeste(){
       <h1 style="font-size:26px;margin:8px 0 12px">Vamos descobrir seu nível de ${esc(L().nome.toLowerCase())}</h1>
       <p class="muted" style="font-size:15px">São cerca de 15 questões que se adaptam às suas respostas, mais um pequeno texto escrito. Leva de 8 a 12 minutos e define exatamente onde sua trilha começa — nada de repetir o que você já domina.</p>
       <p class="muted" style="font-size:14px">Responda sem consultar nada. Errar aqui é útil: é assim que o nível sai correto.</p>
-      <button class="btn block" id="tst-start" style="margin-top:8px">Começar o teste</button>
+      <button class="btn block" id="tst-start" style="margin-top:8px">Fazer o teste</button>
+    </div>
+
+    <div class="card" style="margin-top:14px">
+      <div class="eyebrow">Ou pule o teste</div>
+      <p class="muted" style="font-size:14px;margin:8px 0 12px">Se você nunca estudou ${esc(L().nome.toLowerCase())}, não há o que medir. Comece do começo.</p>
+      <button class="btn ghost block" id="tst-zero">Nunca estudei — começar do zero (A1)</button>
+      <div class="divider" style="margin:18px 0 12px"></div>
+      <div class="eyebrow">Já sei meu nível</div>
+      <p class="muted" style="font-size:13.5px;margin:8px 0 10px">Escolha e comece direto. Dá para refazer o teste depois, em Ajustes.</p>
+      <div class="row" style="gap:7px;flex-wrap:wrap">
+        ${NIVEIS.map(n=>`<button class="chip" data-nivel="${n}" style="font-weight:700">${n}</button>`).join('')}
+      </div>
+      <p class="muted" style="font-size:12.5px;margin:12px 0 0">A1 iniciante · B1 se vira sozinho · C1 avançado</p>
     </div>`;
   $('#tst-start').onclick=proximaRodada;
+  $('#tst-zero').onclick=()=>definirNivel(0,'Você começa do início. Cada palavra daqui em diante é nova — e é exatamente assim que deve ser.');
+  $$('[data-nivel]').forEach(b=>b.onclick=()=>definirNivel(NIVEIS.indexOf(b.dataset.nivel),
+    'Nível escolhido por você. Se as aulas parecerem fáceis ou difíceis demais nos primeiros dias, refaça o teste em Ajustes.'));
 }
 function proximaRodada(){
   const nv=NIVEIS[T.idx];
@@ -991,6 +1049,29 @@ function tarefaEscrita(){
     </div>`;
   $('#tst-fin').onclick=finalizarTeste;
 }
+/* entrada sem teste: do zero ou com nível declarado */
+async function definirNivel(idx,recado){
+  $('#tst-body').innerHTML=loadingHTML('Preparando sua trilha…');
+  await salvarPerfil({
+    nivel:NIVEIS[idx], nivel_indice:idx, diagnostico:recado,
+    dia_atual:1, streak:0, minutos:0, ultimo_dia:null,
+    criado_em:perfil?.criado_em||new Date().toISOString()
+  });
+  mostrarResultado(idx,recado,'Seu ponto de partida');
+}
+function mostrarResultado(final,comentario,rotulo){
+  $('#tst-step').textContent='';
+  $('#tst-body').innerHTML=`
+    <div class="card center">
+      <div class="eyebrow">${esc(rotulo||'Seu nível')}</div>
+      <div style="font-family:Fraunces,serif;font-size:70px;font-weight:700;color:var(--accent);line-height:1;margin:10px 0">${NIVEIS[final]}</div>
+      <p style="font-size:15px;margin:0 0 6px"><b>${esc(NIVEL_TXT[NIVEIS[final]].split('.')[0])}</b></p>
+      <p class="muted" style="font-size:14px">${esc(NIVEL_TXT[NIVEIS[final]].split('.').slice(1).join('.').trim())}</p>
+      ${comentario?`<p style="font-size:14.5px;text-align:left;background:var(--surface-2);padding:14px;border-radius:14px;border-left:3px solid var(--brass)">${esc(comentario)}</p>`:''}
+      <button class="btn block" id="tst-ir" style="margin-top:14px">Ir para minha primeira aula</button>
+    </div>`;
+  $('#tst-ir').onclick=async()=>{ await carregarTudo(); abrirApp(); };
+}
 async function finalizarTeste(){
   const texto=$('#tst-txt').value.trim();
   $('#tst-body').innerHTML=loadingHTML('Avaliando suas respostas e definindo seu nível…');
@@ -1016,16 +1097,7 @@ async function finalizarTeste(){
     diagnostico:comentario, dia_atual:1, streak:0, minutos:0,
     ultimo_dia:null, criado_em:perfil?.criado_em||new Date().toISOString()
   });
-  $('#tst-body').innerHTML=`
-    <div class="card center">
-      <div class="eyebrow">Seu nível</div>
-      <div style="font-family:Fraunces,serif;font-size:70px;font-weight:700;color:var(--accent);line-height:1;margin:10px 0">${NIVEIS[final]}</div>
-      <p style="font-size:15px;margin:0 0 6px"><b>${esc(NIVEL_TXT[NIVEIS[final]].split('.')[0])}</b></p>
-      <p class="muted" style="font-size:14px">${esc(NIVEL_TXT[NIVEIS[final]].split('.').slice(1).join('.').trim())}</p>
-      ${comentario?`<p style="font-size:14.5px;text-align:left;background:var(--surface-2);padding:14px;border-radius:14px;border-left:3px solid var(--brass)">${esc(comentario)}</p>`:''}
-      <button class="btn block" id="tst-ir" style="margin-top:14px">Ir para minha primeira aula</button>
-    </div>`;
-  $('#tst-ir').onclick=async()=>{ await carregarTudo(); abrirApp(); };
+  mostrarResultado(final,comentario,'Seu nível');
 }
 
 /* ═══════════════════════════════════════════════════
@@ -1277,6 +1349,7 @@ function blocoVocabulario(){
             ${playBtn(v.exemplo)}</div></div>
         </div></div>`).join('')}
     </div>
+    <p class="credito">Fotos do acervo livre Wikimedia Commons</p>
     ${S.c.padrao?`<div class="divider"></div>
     <div class="card">
       <div class="eyebrow">Padrão observado</div>
@@ -1524,6 +1597,7 @@ async function concluirAula(){
 function abrirHub(){
   ['#scr-auth','#scr-test','#scr-app','#session'].forEach(x=>$(x).classList.add('hide'));
   $('#scr-hub').classList.remove('hide');
+  pintarTema();
   $('#hub-mark').innerHTML=[40,70,100,55,85,45,65].map(h=>`<i style="height:${h}%"></i>`).join('');
   $('#hub-data').textContent=new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'});
   $('#hub-ola').textContent=saudacao();
@@ -1574,6 +1648,23 @@ function entrarIdioma(cod){
   if(!perfil||!perfil.nivel){ toast('Vamos medir seu nível de '+L().nome.toLowerCase()+' primeiro.',4000); return iniciarTeste(); }
   abrirApp();
 }
+const ICONE_TEMA = ()=> PREF.theme==='dark'
+  ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round">
+       <circle cx="12" cy="12" r="4.2"/><path d="M12 2.4v2.2M12 19.4v2.2M4.2 12H2M22 12h-2.2M6.3 6.3 4.8 4.8M19.2 19.2l-1.5-1.5M17.7 6.3l1.5-1.5M4.8 19.2l1.5-1.5"/></svg>`
+  : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+       <path d="M20.5 14.5A8.6 8.6 0 0 1 9.5 3.5a8.6 8.6 0 1 0 11 11z"/></svg>`;
+function pintarTema(){
+  document.documentElement.dataset.theme=PREF.theme||'light';
+  const h=ICONE_TEMA();
+  const a=$('#hub-tema'); if(a) a.innerHTML=h;
+  const b=$('#cf-theme'); if(b) b.innerHTML=h;
+}
+function pintarFotos(){
+  const b=$('#cf-fotos'); if(!b) return;
+  b.textContent = PREF.semFotos? 'Desligadas' : 'Ligadas';
+  b.classList.toggle('accent',!PREF.semFotos);
+}
+function alternarTema(){ PREF.theme=PREF.theme==='dark'?'light':'dark'; savePref(); pintarTema(); }
 function saudacao(){const h=new Date().getHours();return h<12?'Bom dia':h<18?'Boa tarde':'Boa noite'}
 
 function render(){
@@ -1684,13 +1775,20 @@ function abrirPratica(k){
         <div class="word" style="margin:14px 0 2px">${esc(v.termo)}</div>
         <div class="ipa">${esc(v.fonetica||'')}</div>
         <div style="margin:12px 0">${playBtn(v.termo)}</div>
-        <div class="gloss hide" id="srs-tr">${esc(v.traducao)}<br><small>${esc(v.exemplo||'')}</small></div>
+        <div class="hide" id="srs-tr">
+          <div class="ph" id="srs-foto" style="aspect-ratio:16/10;border-radius:16px;margin:0 0 12px"></div>
+          <div class="gloss" style="font-size:17px;color:var(--ink)"><b>${esc(v.traducao)}</b></div>
+          <small class="muted" style="display:block;margin-top:4px">${esc(v.exemplo||'')}</small>
+        </div>
         <button class="btn soft block" id="srs-show" style="margin-top:12px">Mostrar tradução</button>
         <div class="row hide" id="srs-btns" style="margin-top:12px">
           <button class="btn ghost block" data-ok="0">Errei</button>
           <button class="btn block" data-ok="1">Acertei</button></div>`;
       ligarPlays($('#srs-box'));
-      $('#srs-show').onclick=()=>{ $('#srs-tr').classList.remove('hide'); $('#srs-btns').classList.remove('hide'); $('#srs-show').remove(); };
+      $('#srs-show').onclick=()=>{
+        $('#srs-tr').classList.remove('hide'); $('#srs-btns').classList.remove('hide'); $('#srs-show').remove();
+        const f=$('#srs-foto'); if(f){ f.dataset.img=v.img||v.termo; montarImagens($('#srs-box')); }
+      };
       $$('#srs-btns button').forEach(b=>b.onclick=async()=>{ await revisarVocab(v.id,b.dataset.ok==='1'); fila.shift(); passo(); });
     }; passo();
   }
@@ -1775,7 +1873,7 @@ function abrirApp(){
   $('#scr-auth').classList.add('hide'); $('#scr-test').classList.add('hide'); $('#scr-hub').classList.add('hide');
   $('#scr-app').classList.remove('hide');
   $('#cf-mail').textContent=user.email;
-  $('#cf-idiomanome').textContent=L().nome;
+  $('#cf-idiomanome').textContent=L().nome; pintarTema(); pintarFotos();
   $('#cf-rate').value=PREF.rate;
   $('#cv-temas').innerHTML=TEMAS().map(t=>`<button class="chip" data-tema="${esc(t)}">${esc(t)}</button>`).join('');
   $$('[data-tema]').forEach(b=>b.onclick=()=>enviarChat(b.dataset.tema));
@@ -1788,8 +1886,7 @@ function ligarEventos(){
   $('#hj-go').onclick=()=>abrirSessao();
   $('#hd-idioma').onclick=abrirHub;
   $('#cf-idioma').onclick=abrirHub;
-  $('#hub-tema').onclick=()=>{ PREF.theme=PREF.theme==='dark'?'light':'dark'; savePref();
-    document.documentElement.dataset.theme=PREF.theme; };
+  $('#hub-tema').onclick=alternarTema;
   $('#hub-sair').onclick=async()=>{ if(confirm('Sair da conta? Você precisará entrar de novo com e-mail e senha.')){ await sb.auth.signOut(); location.reload(); } };
   $('#hj-srsgo').onclick=()=>{aba('pratica');abrirPratica('srs')};
   $$('[data-prat]').forEach(b=>b.onclick=()=>abrirPratica(b.dataset.prat));
@@ -1801,8 +1898,9 @@ function ligarEventos(){
   $('#cv-clear').onclick=()=>{chat=[];renderChat()};
   $('#cv-mic').onclick=()=>{ const b=$('#cv-mic'); b.textContent='● ouvindo'; 
     ouvir(t=>$('#cv-in').value=t,t=>{b.textContent='🎙 Falar'; if(t) enviarChat(t)},()=>b.textContent='🎙 Falar'); };
-  $('#cf-theme').onclick=()=>{ PREF.theme=PREF.theme==='dark'?'light':'dark'; savePref();
-    document.documentElement.dataset.theme=PREF.theme; };
+  $('#cf-theme').onclick=alternarTema;
+  $('#cf-fotos').onclick=()=>{ PREF.semFotos=!PREF.semFotos; savePref(); pintarFotos();
+    toast(PREF.semFotos?'Fotos desligadas. As aulas ficam mais leves.':'Fotos ligadas.'); };
   $('#cf-rate').oninput=e=>{PREF.rate=Number(e.target.value);savePref();mostrarVel()};
   $('#cf-rate').onchange=()=>falar(L().amostra);
   $('#cf-fem').onclick=()=>trocarGenero('f');
@@ -1838,8 +1936,7 @@ async function iniciar(u){
 }
 
 (async function main(){
-  document.documentElement.dataset.theme=PREF.theme||'light';
-  ligarEventos();
+  ligarEventos(); pintarTema();
   // manifesto PWA gerado em tempo de execução
   const man={name:'LINGUA',short_name:'LINGUA',start_url:'.',display:'standalone',
     background_color:'#0E2A33',theme_color:'#0E2A33',
