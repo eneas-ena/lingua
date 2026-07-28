@@ -422,6 +422,9 @@ main{padding-bottom:110px;padding-top:18px}
         <div class="spread"><div><b>Fotos do vocabulário</b>
           <div class="muted" style="font-size:13px">Imagens do acervo Wikimedia Commons nas palavras novas e na revisão</div></div>
           <button class="chip" id="cf-fotos">—</button></div>
+        <div class="divider" style="margin:16px 0 12px"></div>
+        <button class="btn ghost block" id="cf-fototeste">Testar busca de fotos</button>
+        <div id="cf-fotodiag" style="margin-top:12px"></div>
       </div>
       <div class="card" style="margin-top:14px">
         <div class="eyebrow">Diagnóstico de áudio</div>
@@ -786,53 +789,93 @@ function notaFala(alvo,dito){
    6. IMAGENS — Wikimedia Commons
    ═══════════════════════════════════════════════════ */
 const FOTO_RUIM=/(\bmap\b|karte|mapa|diagram|chart|logo|flag|bandera|coat.of.arms|escudo|seal|icon|graph|plot|schematic|blueprint|signature|stamp|banknote|barcode|screenshot|poster|cover|title.page|manuscript|inscription)/i;
+let DIAG_FOTO=[];   // registro da última busca, mostrado em Ajustes
 
-async function buscarImagem(termo){
+/* ── fonte 1: busca no acervo Wikimedia Commons ─────────────── */
+async function fonteCommons(termo){
+  const url='https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrnamespace=6'
+    +'&gsrsearch='+encodeURIComponent(termo+' filetype:bitmap')
+    +'&gsrlimit=10&prop=imageinfo&iiprop=url%7Csize&iiurlwidth=640&format=json&origin=*';
+  const r=await fetch(url);
+  if(!r.ok) throw new Error('HTTP '+r.status);
+  const j=await r.json();
+  const pgs=(j&&j.query&&j.query.pages)||null;
+  if(!pgs) return {src:null,nota:'nenhum resultado'};
+  const todos=Object.values(pgs);
+  const bons=todos
+    .filter(p=>/\.(jpe?g|png)$/i.test(p.title||''))
+    .filter(p=>!FOTO_RUIM.test(p.title||''))
+    .filter(p=>p.imageinfo&&p.imageinfo[0]&&p.imageinfo[0].thumburl)
+    .sort((a,b)=>(a.index||99)-(b.index||99));
+  return {src: bons.length? bons[0].imageinfo[0].thumburl : null,
+          nota: todos.length+' achados, '+bons.length+' aproveitáveis'};
+}
+
+/* ── fonte 2: imagem principal do verbete na Wikipédia ──────── */
+async function fonteWikipedia(termo){
+  const limpo=termo.replace(/^(the|a|an|el|la|los|las|un|una|le|les|der|die|das|il|lo)\s+/i,'').trim();
+  const idiomas=[IDIOMA,'en','pt'].filter((v,i,a)=>a.indexOf(v)===i);
+  for(const lg of idiomas){
+    const u='https://'+lg+'.wikipedia.org/api/rest_v1/page/summary/'+encodeURIComponent(limpo);
+    const r=await fetch(u);
+    if(!r.ok) continue;
+    const j=await r.json();
+    const src=(j.originalimage&&j.originalimage.source)||(j.thumbnail&&j.thumbnail.source);
+    if(src) return {src:String(src).replace(/\/\d+px-/,'/640px-'), nota:'verbete em '+lg};
+  }
+  return {src:null,nota:'sem verbete com foto'};
+}
+
+/* ── fonte 3: Openverse, acervo de imagens livres ───────────── */
+async function fonteOpenverse(termo){
+  const u='https://api.openverse.org/v1/images/?q='+encodeURIComponent(termo)+'&page_size=5&mature=false';
+  const r=await fetch(u);
+  if(!r.ok) throw new Error('HTTP '+r.status);
+  const j=await r.json();
+  const bons=(j.results||[]).filter(x=>x.url&&!FOTO_RUIM.test(x.title||''));
+  return {src: bons.length? (bons[0].thumbnail||bons[0].url) : null,
+          nota:(j.results||[]).length+' achados'};
+}
+
+const FONTES=[['Wikimedia Commons',fonteCommons],['Wikipédia',fonteWikipedia],['Openverse',fonteOpenverse]];
+
+async function buscarImagem(termo,registrar){
   if(PREF.semFotos) return null;
-  const chave='foto:'+termo.toLowerCase();
+  const chave='foto2:'+termo.toLowerCase();
   const guardado=localStorage.getItem(chave);
-  if(guardado) return guardado==='0'? null : guardado;
+  if(guardado){ if(registrar) DIAG_FOTO.push(['memória','já buscado antes',guardado==='0'?'sem foto':'ok']); 
+                return guardado==='0'? null : guardado; }
 
-  // duas tentativas: o termo como veio e sem o artigo inicial
-  const consultas=[termo, termo.replace(/^(the|a|an|el|la|los|las|un|una|le|les|der|die|das|il|lo)\s+/i,'')]
-    .filter((v,i,a)=>v && a.indexOf(v)===i);
-
-  for(const q of consultas){
+  for(const [nome,fn] of FONTES){
     try{
-      const url='https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrnamespace=6'
-        +'&gsrsearch='+encodeURIComponent(q+' filetype:bitmap')
-        +'&gsrlimit=10&prop=imageinfo&iiprop=url|size&iiurlwidth=640&format=json&origin=*';
-      const j=await (await fetch(url)).json();
-      const pgs=j&&j.query&&j.query.pages; if(!pgs) continue;
-      const bons=Object.values(pgs)
-        .filter(p=>/\.(jpe?g|png)$/i.test(p.title||''))       // nada de SVG, GIF ou TIFF
-        .filter(p=>!FOTO_RUIM.test(p.title||''))                // nada de mapa, brasão, diagrama
-        .filter(p=>p.imageinfo && p.imageinfo[0] && p.imageinfo[0].thumburl)
-        .filter(p=>(p.imageinfo[0].width||0) >= 400)            // nada de miniatura
-        .sort((a,b)=>(a.index||99)-(b.index||99));              // respeita a ordem de relevância
-      if(bons.length){
-        const src=bons[0].imageinfo[0].thumburl;
-        try{ localStorage.setItem(chave,src); }catch(e){}
-        return src;
-      }
-    }catch(e){ /* rede fora, segue sem foto */ }
+      const r=await fn(termo);
+      if(registrar) DIAG_FOTO.push([nome, r.nota, r.src?'✓ achou':'— nada']);
+      if(r.src){ try{localStorage.setItem(chave,r.src)}catch(e){} return r.src; }
+    }catch(e){
+      const causa = /Failed to fetch|NetworkError|Load failed/i.test(e.message)
+        ? 'bloqueado pelo navegador (CORS ou rede)' : e.message;
+      if(registrar) DIAG_FOTO.push([nome, causa, '✕ erro']);
+    }
   }
   try{ localStorage.setItem(chave,'0'); }catch(e){}
   return null;
 }
 
-/* carrega todas as fotos do bloco em paralelo */
 async function montarImagens(escopo){
   const alvos=$$('[data-img]',escopo);
+  let primeiro=true;
   await Promise.all(alvos.map(async el=>{
     const termo=el.dataset.img; el.removeAttribute('data-img');
+    const registrar=primeiro; primeiro=false;
+    if(registrar) DIAG_FOTO=[['palavra buscada',termo,'']];
     el.classList.add('carregando');
-    const src=await buscarImagem(termo);
+    const src=await buscarImagem(termo,registrar);
     el.classList.remove('carregando');
     if(!src){ el.classList.add('semfoto'); return; }
     const im=new Image(); im.alt=termo; im.loading='lazy';
     im.onload=()=>{ el.innerHTML=''; el.appendChild(im); };
-    im.onerror=()=>el.classList.add('semfoto');
+    im.onerror=()=>{ el.classList.add('semfoto');
+      if(registrar) DIAG_FOTO.push(['carregamento','a imagem não abriu','✕ erro']); };
     im.src=src;
   }));
 }
@@ -1899,6 +1942,26 @@ function ligarEventos(){
   $('#cv-mic').onclick=()=>{ const b=$('#cv-mic'); b.textContent='● ouvindo'; 
     ouvir(t=>$('#cv-in').value=t,t=>{b.textContent='🎙 Falar'; if(t) enviarChat(t)},()=>b.textContent='🎙 Falar'); };
   $('#cf-theme').onclick=alternarTema;
+  $('#cf-fototeste').onclick=async()=>{
+    const cx=$('#cf-fotodiag');
+    cx.innerHTML=loadingHTML('Consultando os três acervos…');
+    const antes=PREF.semFotos; PREF.semFotos=false;
+    const palavra = IDIOMA==='es' ? 'mercado' : 'market';
+    ['foto2:'+palavra].forEach(k=>localStorage.removeItem(k));
+    DIAG_FOTO=[['palavra buscada',palavra,'']];
+    const src=await buscarImagem(palavra,true);
+    PREF.semFotos=antes;
+    cx.innerHTML=`
+      <div class="card" style="padding:14px">
+        ${DIAG_FOTO.map(([a,b,c])=>`<div class="spread" style="font-size:13px;padding:4px 0;gap:10px">
+          <b style="flex:0 0 auto">${esc(a)}</b>
+          <span class="muted" style="flex:1;text-align:right">${esc(b)}</span>
+          <span style="flex:0 0 auto;font-weight:700;color:${/✓/.test(c)?'var(--ok)':/✕/.test(c)?'var(--warn)':'var(--ink-faint)'}">${esc(c)}</span>
+        </div>`).join('')}
+        ${src?`<div class="ph" style="aspect-ratio:16/10;border-radius:12px;margin-top:10px"><img src="${esc(src)}" alt="teste"></div>`
+             :`<p class="muted" style="font-size:13px;margin:10px 0 0">Nenhum dos três acervos devolveu foto. Se todos deram erro de rede, algo neste navegador ou nesta conexão está bloqueando os acervos.</p>`}
+      </div>`;
+  };
   $('#cf-fotos').onclick=()=>{ PREF.semFotos=!PREF.semFotos; savePref(); pintarFotos();
     toast(PREF.semFotos?'Fotos desligadas. As aulas ficam mais leves.':'Fotos ligadas.'); };
   $('#cf-rate').oninput=e=>{PREF.rate=Number(e.target.value);savePref();mostrarVel()};
