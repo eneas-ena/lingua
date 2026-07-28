@@ -110,6 +110,7 @@ header.top{position:sticky;top:0;z-index:40;background:var(--bg);
 nav.tabs{position:fixed;bottom:0;left:0;right:0;z-index:50;display:flex;
   background:var(--surface);border-top:1px solid var(--line);
   padding:6px 4px calc(env(safe-area-inset-bottom) + 6px)}
+nav.tabs{padding-left:max(4px,calc(50% - 350px));padding-right:max(4px,calc(50% - 350px))}
 nav.tabs button{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;
   padding:7px 2px;font-size:10.5px;font-weight:700;color:var(--ink-faint);letter-spacing:.02em}
 nav.tabs button svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
@@ -145,9 +146,9 @@ main{padding-bottom:110px;padding-top:18px}
 
 /* ---------- sessão (tela cheia) ---------- */
 #session{position:fixed;inset:0;z-index:100;background:var(--bg);display:flex;flex-direction:column}
-#session .shead{padding:calc(env(safe-area-inset-top) + 12px) 18px 12px;border-bottom:1px solid var(--line);background:var(--surface)}
-#session .sbody{flex:1;overflow-y:auto;padding:20px 18px 30px;-webkit-overflow-scrolling:touch}
-#session .sfoot{padding:12px 18px calc(env(safe-area-inset-bottom) + 12px);border-top:1px solid var(--line);background:var(--surface);display:flex;gap:10px}
+#session .shead{padding:calc(env(safe-area-inset-top) + 12px) max(18px,calc(50% - 370px)) 12px;border-bottom:1px solid var(--line);background:var(--surface)}
+#session .sbody{flex:1;overflow-y:auto;padding:22px max(18px,calc(50% - 370px)) 40px;-webkit-overflow-scrolling:touch}
+#session .sfoot{padding:12px max(18px,calc(50% - 370px)) calc(env(safe-area-inset-bottom) + 12px);border-top:1px solid var(--line);background:var(--surface);display:flex;gap:10px}
 
 /* ---------- conversa ---------- */
 .msg{max-width:86%;padding:12px 15px;border-radius:18px;margin-bottom:10px;line-height:1.55;white-space:pre-wrap;word-wrap:break-word}
@@ -177,6 +178,10 @@ main{padding-bottom:110px;padding-top:18px}
   animation:sp .7s linear infinite;display:inline-block}
 @keyframes sp{to{transform:rotate(360deg)}}
 .loading{display:flex;flex-direction:column;align-items:center;gap:14px;padding:56px 20px;color:var(--ink-soft);text-align:center}
+.howto{background:var(--brass-soft);border-radius:16px;padding:14px 18px;margin:0 0 20px}
+.howto b{display:block;font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--brass);margin-bottom:6px}
+.howto ol{margin:0;padding-left:20px;font-size:14.5px;line-height:1.7}
+.howto li::marker{color:var(--brass);font-weight:700}
 .divider{height:1px;background:var(--line);margin:22px 0}
 .mic{width:76px;height:76px;border-radius:50%;background:var(--accent);color:var(--accent-ink);
   display:flex;align-items:center;justify-content:center;margin:0 auto}
@@ -333,10 +338,21 @@ main{padding-bottom:110px;padding-top:18px}
           <button class="chip" id="cf-theme">Alternar</button></div>
         <div class="divider"></div>
         <div><b>Velocidade da fala</b><div class="muted" style="font-size:13px;margin-bottom:8px">Áudio das frases e leituras</div>
-          <input type="range" id="cf-rate" min="0.6" max="1.15" step="0.05" style="width:100%"></div>
+          <input type="range" id="cf-rate" min="0.8" max="1.25" step="0.05" style="width:100%"></div>
         <div class="divider"></div>
-        <div class="spread"><div><b>Sotaque</b><div class="muted" style="font-size:13px">Voz usada nos áudios</div></div>
-          <select id="cf-voice" style="max-width:56%;padding:9px 11px;border-radius:10px;border:1.5px solid var(--line);background:var(--surface-2)"></select></div>
+        <div><b>Sotaque</b><div class="muted" style="font-size:13px;margin-bottom:8px">Voz usada em todos os áudios. As marcadas com ★ são as de melhor qualidade instaladas neste aparelho.</div>
+          <select id="cf-voice" style="width:100%;padding:11px 13px;border-radius:12px;border:1.5px solid var(--line);background:var(--surface-2)"></select>
+          <div class="row" style="margin-top:10px">
+            <button class="btn soft sm" id="cf-test">▶ Testar esta voz</button>
+            <span class="muted mono" style="font-size:11.5px;flex:1" id="cf-vozatual">—</span>
+          </div>
+          <details style="margin-top:12px">
+            <summary class="muted" style="font-size:13px;cursor:pointer">O áudio está ruim? Instale uma voz melhor</summary>
+            <p class="muted" style="font-size:13.5px;line-height:1.65">As vozes que vêm de fábrica no sistema são de baixa qualidade e realmente ficam difíceis de entender. Vale instalar uma voz aprimorada, e o app passa a usá-la sozinho.<br><br>
+            <b>No Mac:</b> Ajustes do Sistema › Acessibilidade › Conteúdo Falado › Voz do sistema › <b>Gerenciar Vozes</b> › Inglês (EUA) › baixe <b>Ava (Premium)</b> ou <b>Zoe (Premium)</b>. Depois volte aqui e recarregue a página.<br><br>
+            <b>No iPhone:</b> Ajustes › Acessibilidade › Conteúdo Falado › Vozes › Inglês › baixe uma voz Premium.<br><br>
+            <b>No Chrome do computador:</b> as vozes que começam com <b>Google</b> já costumam ser boas — escolha uma delas na lista acima.</p>
+          </details></div>
       </div>
       <div class="card" style="margin-top:14px">
         <div class="eyebrow">Nivelamento</div>
@@ -428,7 +444,7 @@ const NIVEL_TXT = {
    3. ESTADO
    ═══════════════════════════════════════════════════ */
 let sb=null, user=null, perfil=null, vocab=[], licoes=[], chat=[];
-let PREF = JSON.parse(localStorage.getItem('lg-pref')||'{"rate":0.92,"voice":"","theme":"light"}');
+let PREF = JSON.parse(localStorage.getItem('lg-pref')||'{"rate":1,"voice":"","theme":"light"}');
 const savePref = ()=>localStorage.setItem('lg-pref',JSON.stringify(PREF));
 
 /* ═══════════════════════════════════════════════════
@@ -455,23 +471,65 @@ async function iaJSON(prompt,opt={}){
    5. ÁUDIO — falar e ouvir
    ═══════════════════════════════════════════════════ */
 let vozes=[];
-function carregarVozes(){
-  vozes = speechSynthesis.getVoices().filter(v=>/^en/i.test(v.lang));
-  const sel=$('#cf-voice'); if(!sel) return;
-  sel.innerHTML = vozes.map(v=>`<option value="${esc(v.name)}">${esc(v.name.replace(/Microsoft |Google /,''))} · ${esc(v.lang)}</option>`).join('')
-    || '<option value="">padrão do sistema</option>';
-  if(PREF.voice) sel.value=PREF.voice;
+/* pontua cada voz para escolher sempre a de melhor qualidade disponível */
+function pontuarVoz(v){
+  const n=(v.name||'').toLowerCase(); let p=0;
+  if(/^en[-_]us/i.test(v.lang)) p+=30; else if(/^en[-_]gb/i.test(v.lang)) p+=26; else p+=12;
+  if(/premium|enhanced|neural|natural|siri/.test(n)) p+=50;
+  if(/google/.test(n)) p+=34;
+  if(/samantha|alex|ava|allison|evan|tom|nicky|aaron/.test(n)) p+=24;
+  if(/aria|guy|jenny|michelle|ryan|sonia/.test(n)) p+=22;
+  if(/daniel|karen|moira|tessa|fiona|rishi/.test(n)) p+=14;
+  if(/compact|eloquence|novelty|zarvox|trinoids|boing|bells|bubbles|cellos|jester|organ|superstar|wobble|whisper|bahh|albert|fred|junior|ralph|kathy|deranged|hysterical|bad news|good news|pipe organ/.test(n)) p-=90;
+  if(v.localService) p+=6;
+  return p;
 }
-if('speechSynthesis' in window){ speechSynthesis.onvoiceschanged=carregarVozes; carregarVozes(); }
+function melhorVoz(){
+  if(PREF.voice){ const v=vozes.find(x=>x.name===PREF.voice); if(v) return v; }
+  return vozes.slice().sort((a,b)=>pontuarVoz(b)-pontuarVoz(a))[0]||null;
+}
+function carregarVozes(){
+  if(!('speechSynthesis' in window)) return;
+  vozes = speechSynthesis.getVoices().filter(v=>/^en/i.test(v.lang));
+  const sel=$('#cf-voice');
+  if(sel){
+    const ord=vozes.slice().sort((a,b)=>pontuarVoz(b)-pontuarVoz(a));
+    sel.innerHTML = ord.map(v=>`<option value="${esc(v.name)}">${esc(v.name.replace(/Microsoft |Google /,''))} · ${esc(v.lang)}${pontuarVoz(v)>=60?' ★':''}</option>`).join('')
+      || '<option value="">nenhuma voz em inglês instalada</option>';
+    const atual=melhorVoz(); if(atual) sel.value=atual.name;
+  }
+  const av=$('#cf-vozatual'); if(av) av.textContent = melhorVoz()? melhorVoz().name : 'nenhuma voz em inglês encontrada';
+}
+/* alguns navegadores devolvem a lista vazia nos primeiros instantes */
+if('speechSynthesis' in window){
+  speechSynthesis.onvoiceschanged=carregarVozes;
+  let tentativas=0;
+  const poll=setInterval(()=>{ carregarVozes(); if(vozes.length||++tentativas>24) clearInterval(poll); },250);
+}
 
+/* fala o texto em pedaços: evita o corte do Chrome em frases longas
+   e melhora muito a inteligibilidade */
+let vigia=null;
 function falar(texto,rate){
   if(!('speechSynthesis' in window)) return toast('Este navegador não reproduz áudio de voz.');
   speechSynthesis.cancel();
-  const u=new SpeechSynthesisUtterance(texto);
-  u.lang='en-US'; u.rate=rate||PREF.rate||0.92;
-  const v = vozes.find(v=>v.name===PREF.voice) || vozes.find(v=>/en[-_]US/i.test(v.lang)) || vozes[0];
-  if(v) u.voice=v;
-  speechSynthesis.speak(u);
+  if(!vozes.length) carregarVozes();
+  const v=melhorVoz();
+  if(!v) return toast('Nenhuma voz em inglês instalada neste aparelho. Veja Ajustes › Sotaque.');
+  const limpo=String(texto||'').replace(/\s+/g,' ').trim(); if(!limpo) return;
+  const partes=limpo.match(/[^.!?;:]+[.!?;:]*/g)||[limpo];
+  partes.forEach(t=>{
+    const frase=t.trim(); if(!frase) return;
+    const u=new SpeechSynthesisUtterance(frase);
+    u.voice=v; u.lang=v.lang||'en-US';
+    u.rate=Math.min(1.3,Math.max(0.75,rate||PREF.rate||1)); u.pitch=1; u.volume=1;
+    speechSynthesis.speak(u);
+  });
+  clearInterval(vigia);
+  vigia=setInterval(()=>{
+    if(!speechSynthesis.speaking) return clearInterval(vigia);
+    speechSynthesis.pause(); speechSynthesis.resume();   // contorna a pausa automática do Chrome
+  },9000);
 }
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 function ouvir(onParcial,onFim,onErro){
@@ -818,6 +876,7 @@ function renderBloco(){
     audicao:blocoAudicao,fala:blocoFala,escrita:blocoEscrita}[b.id])();
   atualizarRail();
 }
+const comoFazer=(...passos)=>`<div class="howto"><b>O que fazer aqui</b><ol>${passos.map(x=>`<li>${x}</li>`).join('')}</ol></div>`;
 const playBtn=(txt,rate)=>`<button class="play" data-say="${esc(txt)}" ${rate?`data-rate="${rate}"`:''} aria-label="Ouvir">
   <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>`;
 function ligarPlays(escopo){
@@ -829,12 +888,14 @@ function blocoAquecimento(){
   const c=S.c, devidas=vocabDevido().slice(0,6);
   $('#ss-body').innerHTML=`
     <div class="eyebrow">Aula ${S.licao.dia_num} · nível ${esc(S.licao.nivel)}</div>
+    ${''}
     <h1 style="font-size:27px;margin:8px 0 10px">${esc(c.titulo)}</h1>
     <p class="muted" style="margin:0 0 6px;font-size:15px">${esc(c.tema)}</p>
-    <div class="card" style="margin-top:16px;border-left:3px solid var(--brass)">
+    <div class="card" style="margin:16px 0 20px;border-left:3px solid var(--brass)">
       <div class="eyebrow">Ao fim desta aula você vai</div>
       <p style="margin:6px 0 0;font-size:15.5px">${esc(c.objetivo)}</p>
     </div>
+    ${comoFazer('Leia o objetivo da aula acima.','Reveja as palavras antigas: leia cada uma em voz alta, tente lembrar o que significa e só então marque se sabia ou não.','Toque em <b>Continuar</b>, no rodapé, para ir ao próximo bloco.')}
     ${devidas.length?`
     <div class="divider"></div>
     <div class="eyebrow">Aquecimento — palavras de aulas anteriores</div>
@@ -863,7 +924,8 @@ function blocoVocabulario(){
   const vs=S.c.vocabulario||[];
   $('#ss-body').innerHTML=`
     <div class="eyebrow">Oito palavras do tema de hoje</div>
-    <p class="muted" style="font-size:14px;margin:6px 0 18px">Ouça, repita em voz alta, e só depois olhe a tradução. É assim que a palavra gruda.</p>
+    <h2 style="font-size:21px;margin:8px 0 16px">Escute, repita, depois confira</h2>
+    ${comoFazer('Toque no botão ▶ ao lado da palavra e escute.','Repita em voz alta duas vezes, imitando o ritmo.','Tente adivinhar o sentido pela frase de exemplo antes de tocar em <b>Ver tradução</b>.','Escute também a frase de exemplo completa.')}
     <div class="stack">
       ${vs.map((v,i)=>`<div class="vcard">
         <div class="ph" data-img="${esc(v.img||v.en)}"><span class="fallback">${esc((v.en||'?')[0].toUpperCase())}</span></div>
@@ -897,8 +959,9 @@ function blocoLeitura(){
     return gl[p]? `<w data-t="${esc(gl[p])}">${esc(t)}</w>` : esc(t);
   }).join('');
   $('#ss-body').innerHTML=`
-    <div class="spread"><div class="eyebrow">Leitura</div>${playBtn(L.texto||'',0.88)}</div>
+    <div class="spread"><div class="eyebrow">Leitura</div>${playBtn(L.texto||'',0.95)}</div>
     <h2 style="font-size:23px;margin:10px 0 14px">${esc(L.titulo||'')}</h2>
+    ${comoFazer('Leia o texto inteiro uma vez, sem parar em cada palavra.','Toque nas palavras sublinhadas para ver o sentido.','Leia de novo, agora com o áudio (botão ▶ acima).','Responda às três perguntas no fim.')}
     <div class="reader">${texto}</div>
     <p class="muted" style="font-size:12.5px;margin-top:10px">Toque nas palavras sublinhadas para ver o sentido.</p>
     <div class="divider"></div>
@@ -914,13 +977,15 @@ function blocoAudicao(){
   const A=S.c.audicao||{};
   $('#ss-body').innerHTML=`
     <div class="eyebrow">Audição</div>
-    <p class="muted" style="font-size:14px;margin:6px 0 16px">Ouça sem ler. Depois ouça de novo, mais devagar, se precisar.</p>
+    <h2 style="font-size:21px;margin:8px 0 16px">Ouvir antes de ler</h2>
+    ${comoFazer('Toque em <b>▶ Ouvir</b> e escute <b>sem</b> abrir a transcrição. Não faz mal entender pouco na primeira vez.','Ouça uma segunda vez no botão <b>Devagar</b>.','Responda às perguntas logo abaixo.','Só então abra <b>Mostrar transcrição</b> e ouça uma última vez lendo junto.','No ditado, ouça cada frase e escreva o que entendeu. Depois toque em <b>Conferir ditado</b>.')}
     <div class="card center">
       <div class="row" style="justify-content:center;gap:12px">
         <button class="btn" data-say="${esc(A.texto||'')}">▶ Ouvir</button>
-        <button class="btn ghost" data-say="${esc(A.texto||'')}" data-rate="0.72">🐢 Devagar</button>
+        <button class="btn ghost" data-say="${esc(A.texto||'')}" data-rate="0.8">🐢 Devagar</button>
       </div>
       <button class="chip" id="au-txt" style="margin-top:14px">Mostrar transcrição</button>
+      <div class="muted" style="font-size:12px;margin-top:10px">Áudio ruim ou incompreensível? Troque a voz em <b>Ajustes › Sotaque</b>.</div>
       <p class="reader hide" id="au-body" style="text-align:left;font-size:16px;margin-top:14px">${esc(A.texto||'')}</p>
     </div>
     <div class="divider"></div>
@@ -932,7 +997,7 @@ function blocoAudicao(){
     <div class="stack" id="au-dit">
       ${(A.ditado||[]).map((f,i)=>`<div class="card">
         <div class="spread"><b class="muted" style="font-size:13px">Frase ${i+1}</b>
-          <div class="row" style="gap:6px">${playBtn(f)}<button class="chip" data-say="${esc(f)}" data-rate="0.68">devagar</button></div></div>
+          <div class="row" style="gap:6px">${playBtn(f)}<button class="chip" data-say="${esc(f)}" data-rate="0.8">devagar</button></div></div>
         <input class="dit" data-i="${i}" placeholder="escreva aqui…" style="width:100%;margin-top:10px;padding:12px 14px;border-radius:12px;border:1.5px solid var(--line);background:var(--surface-2)">
         <div class="muted" style="font-size:13.5px;margin-top:8px" id="dt${i}"></div>
       </div>`).join('')}
@@ -954,7 +1019,8 @@ function blocoFala(){
   const F=S.c.fala||{};
   $('#ss-body').innerHTML=`
     <div class="eyebrow">Pronúncia</div>
-    <p class="muted" style="font-size:14px;margin:6px 0 16px">Ouça, repita em voz alta e receba sua nota. Fale em ritmo normal, sem soletrar.</p>
+    <h2 style="font-size:21px;margin:8px 0 16px">Sua vez de falar</h2>
+    ${comoFazer('Toque em ▶ e escute a frase.','Toque em <b>🎙 Falar</b>, espere um instante e diga a frase inteira em ritmo normal — sem soletrar.','Compare sua nota: acima de 85% está bom. Repita as que ficarem abaixo disso.','No fim, responda às duas perguntas falando livremente; eu corrijo o que você disse.')}
     <div class="stack">
       ${(F.frases||[]).map((f,i)=>`<div class="card">
         <div class="spread"><b style="font-family:Fraunces,serif;font-size:18px;flex:1">${esc(f)}</b>${playBtn(f)}</div>
@@ -1010,6 +1076,7 @@ function blocoEscrita(){
     <h2 style="font-size:21px;margin:10px 0 8px">${esc(E.tarefa_en||'Write')}</h2>
     <p class="muted" style="font-size:14.5px;margin:0 0 4px">${esc(E.tarefa||'')}</p>
     <p class="muted" style="font-size:13px">Mínimo sugerido: ${E.minimo||60} palavras. Use as palavras de hoje.</p>
+    ${comoFazer('Escreva em inglês, sem tradutor, do jeito que sair.','Toque em <b>Enviar para correção</b>.','Leia a versão corrigida comparando com a sua — é aí que está o aprendizado.','Depois toque em <b>Concluir aula</b>, no rodapé.')}
     <textarea id="es-txt" placeholder="Write in English…" style="min-height:180px"></textarea>
     <div class="spread" style="margin:8px 0 14px"><span class="muted" style="font-size:13px" id="es-n">0 palavras</span>
       <button class="btn sm" id="es-go">Enviar para correção</button></div>
@@ -1192,7 +1259,7 @@ function abrirPratica(k){
       try{
         const r=await iaJSON(`Gere 5 frases em inglês de nível ${perfil.nivel}, entre 6 e 12 palavras, sobre assuntos variados do cotidiano adulto. Responda SOMENTE: {"frases":["","","","",""]}`,{model:CFG.MODEL_FAST,max:600});
         $('#dt-box').innerHTML=r.frases.map((f,i)=>`<div class="card" style="margin-bottom:10px">
-          <div class="spread"><b class="muted" style="font-size:13px">Frase ${i+1}</b><div class="row" style="gap:6px">${playBtn(f)}<button class="chip" data-say="${esc(f)}" data-rate="0.7">devagar</button></div></div>
+          <div class="spread"><b class="muted" style="font-size:13px">Frase ${i+1}</b><div class="row" style="gap:6px">${playBtn(f)}<button class="chip" data-say="${esc(f)}" data-rate="0.8">devagar</button></div></div>
           <input class="pdit" data-f="${esc(f)}" placeholder="escreva…" style="width:100%;margin-top:10px;padding:12px 14px;border-radius:12px;border:1.5px solid var(--line);background:var(--surface-2)">
           <div class="muted" style="font-size:13.5px;margin-top:8px"></div></div>`).join('')
           +'<button class="btn soft block" id="pdt-ck">Conferir</button>';
@@ -1283,7 +1350,9 @@ function ligarEventos(){
   $('#cf-theme').onclick=()=>{ PREF.theme=PREF.theme==='dark'?'light':'dark'; savePref();
     document.documentElement.dataset.theme=PREF.theme; };
   $('#cf-rate').oninput=e=>{PREF.rate=Number(e.target.value);savePref()};
-  $('#cf-voice').onchange=e=>{PREF.voice=e.target.value;savePref();falar('This is how I will sound.')};
+  $('#cf-voice').onchange=e=>{PREF.voice=e.target.value;savePref();carregarVozes();
+    falar('Good evening. This is the voice that will read your lessons from now on.')};
+  $('#cf-test').onclick=()=>falar('Good evening. This is the voice that will read your lessons from now on.');
   $('#cf-retest').onclick=()=>{ if(confirm('Refazer o teste? Seu nível será recalculado. Aulas e vocabulário são mantidos.')) iniciarTeste(); };
   $('#cf-out').onclick=async()=>{ await sb.auth.signOut(); location.reload(); };
   $('#au-in').onclick=()=>autenticar('in');
