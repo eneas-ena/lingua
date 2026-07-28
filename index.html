@@ -549,18 +549,38 @@ function toast(msg,ms=2800){
 function loadingHTML(txt){return `<div class="loading"><span class="spin"></span><div>${esc(txt)}</div></div>`}
 
 const IDIOMAS = {
-  en:{ nome:'Inglês', adj:'inglês', sigla:'EN', tts:'en-US', re:/^en/i,
+  en:{ nome:'Inglês', adj:'inglês', sigla:'EN', tts:'en-US', re:/^en/i, limiar:[85,60],
        amostra:'Good evening. This is the voice that will read your lessons from now on.',
        escreva:'Write in English…', exemploFrase:'I would like a cup of tea, please.',
        temas:['Small talk','My work and week','Travel plans','Books and reading','Food and cooking','News and opinions','Job interview','At the doctor'],
        redacao:{titulo:'Describe your typical Sunday',ajuda:'Escreva de 4 a 8 frases sobre como é o seu domingo.',ph:'On Sundays I usually…'},
        nota:'' },
-  es:{ nome:'Espanhol', adj:'espanhol', sigla:'ES', tts:'es-ES', re:/^es/i,
+  es:{ nome:'Espanhol', adj:'espanhol', sigla:'ES', tts:'es-ES', re:/^es/i, limiar:[85,60],
        amostra:'Buenas noches. Esta es la voz que leerá sus lecciones a partir de ahora.',
        escreva:'Escribe en español…', exemploFrase:'Quisiera una taza de té, por favor.',
        temas:['Presentarse','Mi trabajo y mi semana','Planes de viaje','Libros y lectura','Comida y cocina','Noticias y opiniones','Una entrevista','En el médico'],
        redacao:{titulo:'Describe un domingo normal en tu vida',ajuda:'Escreva de 4 a 8 frases sobre como é o seu domingo.',ph:'Los domingos normalmente…'},
-       nota:'CUIDADO ESPECIAL: o aluno é falante nativo de português do Brasil. O espanhol lhe parecerá fácil, e esse é justamente o risco. Trate ativamente os falsos amigos (exquisito, embarazada, rato, largo, oficina, salsa, borracha, pelado, taller, vaso, presunto, cena, sitio, apellido, cadera, cachorro, polvo, ligar, quitar, acordar, brincar, embarazo) e a interferência do português na grafia, na acentuação, no uso de ser/estar, na escolha entre pretérito perfecto e indefinido, na colocação dos pronomes átonos e no uso de "muy/mucho". Nunca aceite portunhol como correto: se o aluno escrever uma forma aportuguesada, corrija-a explicitamente e nomeie a interferência.' }
+       nota:'CUIDADO ESPECIAL: o aluno é falante nativo de português do Brasil. O espanhol lhe parecerá fácil, e esse é justamente o risco. Trate ativamente os falsos amigos (exquisito, embarazada, rato, largo, oficina, salsa, borracha, pelado, taller, vaso, presunto, cena, sitio, apellido, cadera, cachorro, polvo, ligar, quitar, acordar, brincar, embarazo) e a interferência do português na grafia, na acentuação, no uso de ser/estar, na escolha entre pretérito perfecto e indefinido, na colocação dos pronomes átonos e no uso de "muy/mucho". Nunca aceite portunhol como correto: se o aluno escrever uma forma aportuguesada, corrija-a explicitamente e nomeie a interferência.' },
+  fr:{ nome:'Francês', adj:'francês', sigla:'FR', tts:'fr-FR', re:/^fr/i, limiar:[78,55],
+       amostra:'Bonsoir. Voici la voix qui lira vos leçons à partir de maintenant.',
+       escreva:'Écris en français…', exemploFrase:'Je voudrais une tasse de thé, s\'il vous plaît.',
+       temas:['Se présenter','Mon travail et ma semaine','Projets de voyage','Livres et lecture','Cuisine et repas','Actualités et opinions','Un entretien','Chez le médecin'],
+       redacao:{titulo:'Décrivez un dimanche ordinaire de votre vie',ajuda:'Escreva de 4 a 8 frases sobre como é o seu domingo.',ph:'Le dimanche, je…'},
+       nota:'PARTICULARIDADES DO FRANCÊS: há um abismo entre a grafia e o som, e é ele que trava o aluno brasileiro. Em A1 e A2, mantenha as frases de ditado curtas (6 a 9 palavras) e evite acumular liaisons, elisões e homófonos numa mesma frase. Trate a pronúncia das terminações mudas, as liaisons e a nasalização como padrões observados nos exemplos, nunca como regras decoradas. Cuide também dos falsos amigos com o português: attendre, rester, quitter, tirer, prétendre, actuellement, sensible, librairie, journée, blesser, envie, large.' },
+
+  de:{ nome:'Alemão', adj:'alemão', sigla:'DE', tts:'de-DE', re:/^de/i, limiar:[75,50],
+       amostra:'Guten Abend. Das ist die Stimme, die ab jetzt Ihre Lektionen vorliest.',
+       escreva:'Schreibe auf Deutsch…', exemploFrase:'Ich hätte gern eine Tasse Tee, bitte.',
+       temas:['Sich vorstellen','Meine Arbeit und meine Woche','Reisepläne','Bücher und Lesen','Essen und Kochen','Nachrichten und Meinungen','Ein Vorstellungsgespräch','Beim Arzt'],
+       redacao:{titulo:'Beschreiben Sie einen gewöhnlichen Sonntag',ajuda:'Escreva de 4 a 8 frases sobre como é o seu domingo.',ph:'Sonntags stehe ich…'},
+       nota:'PARTICULARIDADES DO ALEMÃO: JAMAIS apresente tabelas de declinação, quadros de casos ou listas de terminações — isso destrói o método natural logo na segunda semana. Os casos, a posição do verbo e os verbos separáveis devem sempre aparecer primeiro como PADRÃO OBSERVADO em três ou quatro exemplos reais, e só depois receber duas frases de explicação em português. Aproveite os substantivos compostos como oportunidade de vocabulário, mostrando as partes que o aluno já conhece. Nos primeiros níveis prefira frases com verbo na segunda posição antes de introduzir orações subordinadas com verbo no fim.' },
+
+  it:{ nome:'Italiano', adj:'italiano', sigla:'IT', tts:'it-IT', re:/^it/i, limiar:[82,58],
+       amostra:'Buonasera. Questa è la voce che leggerà le sue lezioni d\'ora in poi.',
+       escreva:'Scrivi in italiano…', exemploFrase:'Vorrei una tazza di tè, per favore.',
+       temas:['Presentarsi','Il mio lavoro e la mia settimana','Progetti di viaggio','Libri e lettura','Cibo e cucina','Notizie e opinioni','Un colloquio','Dal medico'],
+       redacao:{titulo:'Descrivi una domenica qualunque della tua vita',ajuda:'Escreva de 4 a 8 frases sobre como é o seu domingo.',ph:'La domenica di solito…'},
+       nota:'CUIDADO ESPECIAL: o aluno é falante nativo de português do Brasil, e o italiano lhe parecerá fácil demais. Cace ativamente os falsos amigos (burro, salire, guardare, presto, negozio, camera, fattoria, morbido, squisito, rapina, pronto, cena, tirare, sperare, aceto, birra, licenziare, testa, palestra) e a interferência do português nas consoantes dobradas, na acentuação, no uso de essere/stare, na escolha entre passato prossimo e imperfetto e na colocação dos pronomes. Nunca aceite uma forma aportuguesada como correta: nomeie a interferência quando ela aparecer.' }
 };
 let IDIOMA = localStorage.getItem('lg-idioma') || 'en';
 const L = ()=>IDIOMAS[IDIOMA];
@@ -658,8 +678,8 @@ function pontuarVoz(v){
   if(v.localService) p+=6;
   return p;
 }
-const M_VOZ=/\b(alex|daniel|fred|tom|aaron|rishi|oliver|ryan|guy|reed|rocko|eddy|arthur|gordon|lee|james|nathan|christopher|eric|brandon|junior|ralph|male|masculin|homem|jorge|diego|carlos|liam|noah|william|davis|jason|roger|steffan|andrew|brian|jorge|juan|diego|carlos|pablo|enrique|miguel)\b/i;
-const F_VOZ=/\b(samantha|ava|zoe|allison|susan|karen|moira|tessa|fiona|kathy|nicky|serena|martha|catherine|aria|jenny|michelle|sonia|zira|flo|grandma|sandy|shelley|tara|veena|kate|female|feminin|mulher|joanna|emma|amy|olivia|sophia|ana|maria|natasha|clara|libby|jane|luna|nova|monica|mónica|paulina|marisol|esperanza|isabela|lucia|lucía|helena|sofia|sofía)\b/i;
+const M_VOZ=/\b(alex|daniel|fred|tom|aaron|rishi|oliver|ryan|guy|reed|rocko|eddy|arthur|gordon|lee|james|nathan|christopher|eric|brandon|junior|ralph|male|masculin|homem|jorge|diego|carlos|liam|noah|william|davis|jason|roger|steffan|andrew|brian|jorge|juan|diego|carlos|pablo|enrique|miguel|thomas|nicolas|mathieu|jacques|markus|yannick|viktor|conrad|stefan|hans|klaus|luca|marco|paolo|roberto|giorgio|cosimo)\b/i;
+const F_VOZ=/\b(samantha|ava|zoe|allison|susan|karen|moira|tessa|fiona|kathy|nicky|serena|martha|catherine|aria|jenny|michelle|sonia|zira|flo|grandma|sandy|shelley|tara|veena|kate|female|feminin|mulher|joanna|emma|amy|olivia|sophia|ana|maria|natasha|clara|libby|jane|luna|nova|monica|mónica|paulina|marisol|esperanza|isabela|lucia|lucía|helena|sofia|sofía|amélie|amelie|aurélie|aurelie|chantal|audrey|virginie|céline|anna|petra|katja|hedda|greta|marlene|alice|federica|paola|silvia|elsa|chiara|giulia)\b/i;
 function generoVoz(v){
   const n=(v.name||'');
   if(/^google (us|uk|india|australian|canadian|nigerian) english$/i.test(n.trim())) return 'f';
@@ -781,6 +801,8 @@ function diagnostico(){
 }
 /* similaridade entre o que foi dito e o alvo */
 function normaliza(s){return String(s||'').toLowerCase().replace(/[^a-z\s']/g,' ').replace(/\s+/g,' ').trim()}
+const LIM = ()=>L().limiar||[85,60];
+function corNota(n){ const [b,m]=LIM(); return n>=b?'var(--ok)':n>=m?'var(--brass)':'var(--warn)'; }
 function notaFala(alvo,dito){
   const A=normaliza(alvo).split(' ').filter(Boolean), B=normaliza(dito).split(' ').filter(Boolean);
   if(!A.length||!B.length) return 0;
@@ -1054,6 +1076,123 @@ C2:[
  ["La medida se adoptó ___ de la última crisis.",["a raíz","a raíces","de raíz","por raíz"]],
  ["Habló con una franqueza que ___ su fama de discreto.",["desmentía","desmintía","desmentaba","desmintiendo"]],
  ["Dado el ___ que tomaban los hechos, se suspendió el acto.",["cariz","carís","cariño","carril"]]]
+},
+/* Francês — atenção às armadilhas de grafia e aos falsos amigos do português */
+fr:{
+A1:[
+ ["Je ___ pasteur et j'écris des livres.",["suis","es","est","sommes"]],
+ ["___ un livre sur la table.",["Il y a","Il est","C'est","Il a"]],
+ ["Nous ___ du café le matin.",["buvons","boivent","bois","buvez"]],
+ ["Elle ___ à Paris depuis un an.",["habite","habites","habitent","habitons"]],
+ ["Les enfants ___ dans le jardin.",["sont","est","ont","a"]]],
+A2:[
+ ["Hier, je ___ au marché avec ma femme.",["suis allé","ai allé","allais","vais"]],
+ ["Ce livre est plus intéressant ___ l'autre.",["que","de","comme","à"]],
+ ["Je me lève tôt ___ dimanche.",["le","au","en","du"]],
+ ["Nous ___ visiter le musée demain.",["allons","allez","vont","va"]],
+ ["Je n'ai ___ fait hier parce que j'étais malade.",["rien","pas","jamais","personne"]]],
+B1:[
+ ["Quand nous sommes arrivés, le film ___ déjà commencé.",["avait","a","était","avais"]],
+ ["Il faut que tu ___ patient.",["sois","es","seras","étais"]],
+ ["Si j'avais plus de temps, je ___ davantage.",["lirais","lirai","lis","lisais"]],
+ ["Le rapport ___ par le secrétaire hier.",["a été rédigé","était rédigeant","a rédigé","est rédigeant"]],
+ ["C'est le livre ___ je t'ai parlé.",["dont","que","qui","où"]]],
+B2:[
+ ["Bien qu'il ___ fatigué, il a continué.",["soit","est","était","sera"]],
+ ["Je ne pense pas qu'elle ___ raison.",["ait","a","aura","avait"]],
+ ["Si je l'avais su, j'___ autrement.",["aurais agi","avais agi","aurai agi","agissais"]],
+ ["Il a fini par ___ la vérité.",["avouer","avouant","avoué","avoue"]],
+ ["Je n'ai encore ___ aucune réponse.",["reçu","recevu","reçue","recevant"]]],
+C1:[
+ ["Il n'est pas question qu'il ___ seul.",["parte","part","partira","partait"]],
+ ["___ que soient les obstacles, il persévère.",["Quels","Quelles","Quel","Quoi"]],
+ ["Le projet a été mené ___ bien malgré tout.",["à","en","de","par"]],
+ ["Elle s'est vu ___ l'accès à la salle.",["refuser","refusé","refusée","refusant"]],
+ ["Il l'a dit sans détour, ___.",["pour ainsi dire","pour ainsi dit","par ainsi dire","pour dire ainsi"]]],
+C2:[
+ ["Son argumentation frisait ___.",["l'absurde","à l'absurde","de l'absurde","en l'absurde"]],
+ ["Il a toujours eu un ___ pour la litote.",["penchant","penchement","pendant","panchant"]],
+ ["L'affaire a été classée ___ suite.",["sans","sous","en","de"]],
+ ["Il parla avec une franchise qui ___ sa réputation de discrétion.",["démentait","démentissait","démentiait","démentant"]],
+ ["Vu ___ que prenaient les événements, on annula la cérémonie.",["la tournure","le tour","la tournée","le tournant"]]]
+},
+/* Alemão — casos, posição do verbo e verbos separáveis */
+de:{
+A1:[
+ ["Ich ___ Pastor von Beruf.",["bin","bist","ist","sind"]],
+ ["___ ein Buch auf dem Tisch.",["Es gibt","Es ist","Da hat","Es hat"]],
+ ["Wir ___ jeden Morgen Kaffee.",["trinken","trinkt","trinke","trinkst"]],
+ ["Sie ___ seit einem Jahr in Berlin.",["wohnt","wohnst","wohnen","wohne"]],
+ ["Die Kinder ___ im Garten.",["sind","ist","haben","hat"]]],
+A2:[
+ ["Gestern ___ ich auf den Markt gegangen.",["bin","habe","war","wurde"]],
+ ["Dieses Buch ist ___ als das andere.",["interessanter","interessant","am interessantesten","mehr interessant"]],
+ ["Ich fahre ___ dem Bus zur Arbeit.",["mit","bei","von","zu"]],
+ ["Er hat keine Zeit, ___ er arbeitet viel.",["denn","weil","dass","ob"]],
+ ["Kannst du mir ___ Buch geben?",["das","dem","des","der"]]],
+B1:[
+ ["Als wir ankamen, ___ der Film schon begonnen.",["hatte","hat","war","ist"]],
+ ["Ich freue mich ___ das Wochenende.",["auf","für","über","an"]],
+ ["Wenn ich mehr Zeit hätte, ___ ich mehr lesen.",["würde","werde","wurde","wäre"]],
+ ["Der Bericht ___ gestern geschrieben.",["wurde","würde","hat","sein"]],
+ ["Das ist der Mann, ___ ich gestern getroffen habe.",["den","der","dem","dessen"]]],
+B2:[
+ ["___ des schlechten Wetters fand die Feier statt.",["Trotz","Wegen","Während","Statt"]],
+ ["Er tat so, als ___ er nichts gewusst.",["hätte","hat","hatte","haben"]],
+ ["Ich lasse mir das Hemd ___.",["bügeln","bügelt","gebügelt","zu bügeln"]],
+ ["Das Problem, ___ Lösung wir suchen, ist komplex.",["dessen","deren","das","dem"]],
+ ["Es ist höchste Zeit, dass wir ___.",["handeln","handelten","gehandelt","zu handeln"]]],
+C1:[
+ ["Kaum ___ er angekommen, klingelte das Telefon.",["war","hatte","ist","wurde"]],
+ ["Die Entscheidung wurde ___ getroffen.",["kurzerhand","kurzhändig","kurzhand","kurzweilig"]],
+ ["Er ließ sich nicht ___ abbringen.",["davon","darauf","dazu","dabei"]],
+ ["___ aller Kritik hielt er an seinem Plan fest.",["Ungeachtet","Ungeachtend","Unerachtet","Ungeachtete"]],
+ ["Die Sache ist mir ___ Herz gewachsen.",["ans","am","zum","ins"]]],
+C2:[
+ ["Seine Rede grenzte ___ Absurde.",["ans","am","zum","aufs"]],
+ ["Er hat eine ___ für Untertreibungen.",["Vorliebe","Vorlage","Vorgabe","Vorsicht"]],
+ ["Der Beweis ist bestenfalls ___.",["dürftig","dürfend","dürfte","dürftigen"]],
+ ["Angesichts der ___ der Vorwürfe wurde die Kaution verweigert.",["Schwere","Schwer","Schwerheit","Schwerte"]],
+ ["Er sprach mit einer Offenheit, die seinem Ruf ___.",["widersprach","widersprochen","widerspricht","widersprechen"]]]
+},
+/* Italiano — próximo do português, calibrado contra a fluência aparente */
+it:{
+A1:[
+ ["Io ___ pastore e scrivo libri.",["sono","sei","è","siamo"]],
+ ["___ un libro sul tavolo.",["C'è","Ci sono","È","Ha"]],
+ ["Noi ___ il caffè la mattina.",["beviamo","bevono","bevo","bevete"]],
+ ["Lei ___ a Roma da un anno.",["vive","vivi","vivono","viviamo"]],
+ ["I bambini ___ nel parco.",["sono","è","hanno","ha"]]],
+A2:[
+ ["Ieri ___ al mercato con mia moglie.",["sono andato","ho andato","andavo","vado"]],
+ ["Mi piace ___ presto la domenica.",["alzarmi","mi alzo","alzarsi","mi alzare"]],
+ ["Studio italiano ___ due anni.",["da","per","fa","in"]],
+ ["Non ___ niente ieri perché ero malato.",["ho fatto","faccio","farò","facevo"]],
+ ["Vado in ufficio ___ macchina.",["in","a","su","per"]]],
+B1:[
+ ["Quando siamo arrivati, il film era già ___.",["cominciato","cominciando","comincia","cominciare"]],
+ ["Penso che lui ___ ragione.",["abbia","ha","avrà","aveva"]],
+ ["Se avessi più tempo, ___ di più.",["leggerei","leggerò","leggo","leggevo"]],
+ ["Il libro ___ scritto da un teologo.",["è stato","era stando","ha stato","è stando"]],
+ ["È la persona ___ ti ho parlato.",["di cui","che","cui","quale"]]],
+B2:[
+ ["Benché ___ stanco, ha continuato.",["fosse","era","sarà","è"]],
+ ["Se l'avessi saputo, ___ diversamente.",["avrei agito","avrò agito","avevo agito","agirei"]],
+ ["Il professore ci chiese di ___ il lavoro lunedì.",["consegnare","consegniamo","consegneremo","consegnando"]],
+ ["L'ha fatto senza che nessuno se ne ___ conto.",["accorgesse","accorge","accorgeva","accorgerà"]],
+ ["Non ho ancora ___ nessuna risposta.",["ricevuto","recebuto","ricevuta","ricevendo"]]],
+C1:[
+ ["___ che è arrivato, non ha smesso di piovere.",["Da","Dopo","Poi","Mentre"]],
+ ["La questione è rimasta ___.",["in sospeso","in sospensione","di sospeso","per sospeso"]],
+ ["Se ne andò senza ___ parola.",["proferire","proferendo","proferito","profferire"]],
+ ["Il suo intervento fu, ___, inopportuno.",["a dir poco","a dire poche","per dir poco","di dir poco"]],
+ ["Questa faccenda mi ha fatto ___ la testa.",["girare","girato","girando","gira"]]],
+C2:[
+ ["Il suo discorso rasentava ___.",["l'assurdo","all'assurdo","dell'assurdo","nell'assurdo"]],
+ ["Ottenere quel contratto non è ___ da poco.",["cosa","roba","caso","poco"]],
+ ["Il provvedimento fu adottato ___ della crisi.",["sulla scia","sulla scie","nella scia","per la scia"]],
+ ["Parlò con una franchezza che ___ la sua fama di riservato.",["smentiva","smentisceva","smentendo","smentita"]],
+ ["Vista la ___ che prendevano gli eventi, la cerimonia fu sospesa.",["piega","piegatura","piegata","piego"]]]
 }
 };
 let T={idx:1,rodada:0,res:{},usados:{},atual:[],fila:[]};
@@ -1245,6 +1384,7 @@ Temas já usados nas últimas aulas (escolha outro, bem diferente): ${recentes.l
 ${fracas.length?`Palavras que o aluno vem errando e devem reaparecer naturalmente no texto: ${fracas.join(', ')}.`:''}
 
 Produza exatamente 8 itens de vocabulário, 3 perguntas de leitura, 3 de audição, 3 frases de ditado, 4 frases de pronúncia e 2 perguntas de fala.
+${IDIOMA==='fr'&&/A[12]/.test(nivel)?'IMPORTANTE: neste nível, as frases de ditado devem ter no máximo 9 palavras e evitar acumular liaisons, elisões e homófonos numa mesma frase.':''}
 
 Responda SOMENTE com este JSON:
 ${esquemaAula()}`;
@@ -1363,10 +1503,26 @@ const comoFazer=(...passos)=>`<div class="howto"><b>O que fazer aqui</b><ol>${pa
 const playBtn=(txt,rate)=>`<button class="play" data-say="${esc(txt)}" ${rate?`data-rate="${rate}"`:''} aria-label="Ouvir">
   <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>`;
 function ligarPlays(escopo){
+  $$('[data-palavras]',escopo).forEach(b=>b.onclick=()=>falarPalavras(b.dataset.palavras));
   $$('[data-say]',escopo).forEach(b=>b.onclick=()=>{
     const r = b.dataset.slow ? Math.max(0.4,(PREF.rate||0.9)-0.3)
             : b.dataset.rate ? Number(b.dataset.rate) : null;
     falar(b.dataset.say,r);
+  });
+}
+function falarPalavras(texto){
+  if(!('speechSynthesis' in window)) return;
+  speechSynthesis.cancel();
+  if(!vozes.length) carregarVozes();
+  const v=melhorVoz(); if(!v) return toast('Nenhuma voz em '+L().adj+' instalada.');
+  const palavras=String(texto||'').replace(/\s+/g,' ').trim().split(' ').filter(Boolean);
+  palavras.forEach(w=>{
+    const u=new SpeechSynthesisUtterance(w);
+    u.voice=v; u.lang=v.lang||L().tts; u.rate=Math.max(0.4,(PREF.rate||0.9)-0.15);
+    speechSynthesis.speak(u);
+    const pausa=new SpeechSynthesisUtterance('.');   // silêncio entre as palavras
+    pausa.voice=v; pausa.volume=0; pausa.rate=0.55;
+    speechSynthesis.speak(pausa);
   });
 }
 const VELS=[0.5,0.6,0.7,0.8,0.9,1,1.1];
@@ -1498,7 +1654,8 @@ function blocoAudicao(){
     <div class="stack" id="au-dit">
       ${(A.ditado||[]).map((f,i)=>`<div class="card">
         <div class="spread"><b class="muted" style="font-size:13px">Frase ${i+1}</b>
-          <div class="row" style="gap:6px">${playBtn(f)}<button class="chip" data-say="${esc(f)}" data-slow="1">devagar</button></div></div>
+          <div class="row" style="gap:6px">${playBtn(f)}<button class="chip" data-say="${esc(f)}" data-slow="1">devagar</button>
+            <button class="chip" data-palavras="${esc(f)}">palavra a palavra</button></div></div>
         <input class="dit" data-i="${i}" placeholder="escreva aqui…" style="width:100%;margin-top:10px;padding:12px 14px;border-radius:12px;border:1.5px solid var(--line);background:var(--surface-2)">
         <div class="muted" style="font-size:13.5px;margin-top:8px" id="dt${i}"></div>
       </div>`).join('')}
@@ -1521,7 +1678,8 @@ function blocoFala(){
   $('#ss-body').innerHTML=`
     <div class="eyebrow">Pronúncia</div>
     <h2 style="font-size:21px;margin:8px 0 16px">Sua vez de falar</h2>
-    ${comoFazer('Toque em ▶ e escute a frase.','Toque em <b>🎙 Falar</b>, espere um instante e diga a frase inteira em ritmo normal — sem soletrar.','Compare sua nota: acima de 85% está bom. Repita as que ficarem abaixo disso.','No fim, responda às duas perguntas falando livremente; eu corrijo o que você disse.')}
+    ${comoFazer('Toque em ▶ e escute a frase.','Toque em <b>🎙 Falar</b>, espere um instante e diga a frase inteira em ritmo normal — sem soletrar.','Compare sua nota: acima de '+LIM()[0]+'% está bom. Repita as que ficarem abaixo disso.','No fim, responda às duas perguntas falando livremente; eu corrijo o que você disse.')}
+    ${/^(de|fr)$/.test(IDIOMA)?`<p class="muted" style="font-size:12.5px;margin:-8px 0 16px">O reconhecimento de voz do navegador é menos preciso em ${esc(L().adj)} que em inglês. A nota de corte aqui já foi afrouxada para não punir você por erro da máquina.</p>`:''}
     <div class="stack">
       ${(F.frases||[]).map((f,i)=>`<div class="card">
         <div class="spread"><b style="font-family:Fraunces,serif;font-size:18px;flex:1">${esc(f)}</b>${playBtn(f)}</div>
@@ -1548,7 +1706,7 @@ function blocoFala(){
     ouvir(t=>out.textContent=t,t=>{
       b.disabled=false; b.textContent='🎙 Falar';
       const n=notaFala(alvo,t);
-      out.innerHTML=`<b style="color:${n>=85?'var(--ok)':n>=60?'var(--brass)':'var(--warn)'}">${n}%</b> — você disse: <i>${esc(t||'(nada)')}</i>`;
+      out.innerHTML=`<b style="color:${corNota(n)}">${n}%</b> — você disse: <i>${esc(t||'(nada)')}</i>`;
       S.notas['fala'+i]=n;
     },()=>{b.disabled=false;b.textContent='🎙 Falar';out.textContent='não consegui captar o áudio'});
   });
@@ -1887,7 +2045,7 @@ function abrirPratica(k){
     $('#pn-rec').onclick=()=>{ const alvo=$('#pn-in').value.trim(); if(!alvo) return toast('Escreva a frase primeiro.');
       const o=$('#pn-out'); o.textContent='fale agora…';
       ouvir(t=>o.textContent=t,t=>{ const n=notaFala(alvo,t);
-        o.innerHTML=`<b style="color:${n>=85?'var(--ok)':'var(--brass)'}">${n}%</b> — você disse: <i>${esc(t||'(nada)')}</i>`; }); };
+        o.innerHTML=`<b style="color:${corNota(n)}">${n}%</b> — você disse: <i>${esc(t||'(nada)')}</i>`; }); };
   }
   if(k==='ditado'){
     $('#dt-go').onclick=async()=>{
@@ -1895,7 +2053,8 @@ function abrirPratica(k){
       try{
         const r=await iaJSON(`Gere 5 frases em ${L().adj} de nível ${perfil.nivel}, entre 6 e 12 palavras, sobre assuntos variados do cotidiano adulto. Responda SOMENTE: {"frases":["","","","",""]}`,{model:CFG.MODEL_FAST,max:600});
         $('#dt-box').innerHTML=r.frases.map((f,i)=>`<div class="card" style="margin-bottom:10px">
-          <div class="spread"><b class="muted" style="font-size:13px">Frase ${i+1}</b><div class="row" style="gap:6px">${playBtn(f)}<button class="chip" data-say="${esc(f)}" data-slow="1">devagar</button></div></div>
+          <div class="spread"><b class="muted" style="font-size:13px">Frase ${i+1}</b><div class="row" style="gap:6px">${playBtn(f)}<button class="chip" data-say="${esc(f)}" data-slow="1">devagar</button>
+            <button class="chip" data-palavras="${esc(f)}">palavra a palavra</button></div></div>
           <input class="pdit" data-f="${esc(f)}" placeholder="escreva…" style="width:100%;margin-top:10px;padding:12px 14px;border-radius:12px;border:1.5px solid var(--line);background:var(--surface-2)">
           <div class="muted" style="font-size:13.5px;margin-top:8px"></div></div>`).join('')
           +'<button class="btn soft block" id="pdt-ck">Conferir</button>';
